@@ -1,0 +1,24 @@
+manifest:
+  remotes:
+    - name: zmkfirmware
+      url-base: https://github.com/zmkfirmware
+    - name: dmhuisma
+      url-base: https://github.com/dmhuisma
+    - name: tadakado
+      url-base: https://github.com/tadakado
+  projects:
+    - name: zmk
+      remote: zmkfirmware
+      revision: main
+      import: app/west.yml
+    - name: zephyr-dt-lvgl
+      remote: dmhuisma
+      revision: main
+      path: modules/lib/zephyr-dt-lvgl
+    # Pinned to the commit reviewed for this board.
+    - name: zmk-ir
+      remote: tadakado
+      revision: 4bafcae67fb87884741d1d64f2d0e76a1f5345a4
+      path: modules/lib/zmk-ir
+  self:
+    path: config

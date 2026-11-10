@@ -1,0 +1,9 @@
+[submodule "firmware/zmk"]
+	path = firmware/zmk
+	url = https://github.com/zmkfirmware/zmk.git
+[submodule "firmware/zephyr-dt-lvgl"]
+	path = firmware/zephyr-dt-lvgl
+	url = https://github.com/dmhuisma/zephyr-dt-lvgl.git
+[submodule "firmware/zmk-ir"]
+	path = firmware/zmk-ir
+	url = https://github.com/tadakado/zmk-ir.git

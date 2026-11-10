@@ -1,0 +1,5 @@
+name: zmk-universal-remote
+build:
+  cmake: .
+  settings:
+    board_root: .

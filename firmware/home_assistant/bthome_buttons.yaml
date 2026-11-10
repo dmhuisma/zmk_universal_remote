@@ -1,0 +1,353 @@
+# Every touchscreen button the remote sends to Home Assistant, and the
+# bthome_ble_event each press fires. A press is a BTHome dimmer event with
+# the button number as its step count: a tap rotates right, a long press
+# rotates left.
+#
+# Match an event on the remote's address plus event_type and
+# event_properties.steps:
+#
+#   event_type: bthome_ble_event
+#   event_data:
+#     address: "XX:XX:XX:XX:XX:XX"
+#     event_type: rotate_right
+#     event_properties:
+#       steps: 1
+#
+# The buttons and numbers come from bthome-buttons and bthome-button-numbers
+# in boards/shields/universal_remote/universal_remote_ui.dtsi; keep the two
+# in step. tools/gen_hass_automation.py checks them against each other and
+# turns this file into an automation to start from.
+#
+# Navigation buttons (tabs, More rows, Back) send nothing and are not listed.
+
+buttons:
+
+  # Lights
+  - id: light_living_room_left
+    screen: Lights
+    label: "Left"
+    target: "light.living_room_left_lamp"
+    steps: 1
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: light_living_room_right
+    screen: Lights
+    label: "Right"
+    target: "light.living_room_right_lamp_living_room_right_lamp"
+    steps: 2
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: light_kitchen_overhead
+    screen: Lights
+    label: "Overhead"
+    target: "light.kitchen_overhead_light_kitchen_overhead_light"
+    steps: 3
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: light_kitchen_table
+    screen: Lights
+    label: "Table"
+    target: "light.kitchen_table_light_kitchen_table_light"
+    steps: 4
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: light_hallway
+    screen: Lights
+    label: "Hallway"
+    target: "light.first_floor_hallway_light_first_floor_hallway_light"
+    steps: 5
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: scene_movie
+    screen: Lights
+    label: "Movie"
+    target: "scene to create"
+    steps: 10
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: scene_bright
+    screen: Lights
+    label: "Bright"
+    target: "scene to create"
+    steps: 11
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: scene_evening
+    screen: Lights
+    label: "Evening"
+    target: "scene to create"
+    steps: 12
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: scene_all_off
+    screen: Lights
+    label: "All off"
+    target: "living room, kitchen and hallway lights"
+    steps: 13
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+
+  # TV
+  - id: tv_jellyfin
+    screen: TV
+    label: "Jellyfin"
+    target: "launch Jellyfin on media_player.living_room_cc"
+    steps: 20
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: tv_youtube
+    screen: TV
+    label: "YouTube"
+    target: "launch YouTube on media_player.living_room_cc"
+    steps: 21
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: tv_input
+    screen: TV
+    label: "Input"
+    target: "button.living_room_tv_source_input"
+    steps: 22
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: tv_mute
+    screen: TV
+    label: "Mute"
+    target: "button.living_room_tv_mute"
+    steps: 23
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: tv_rewind
+    screen: TV
+    label: "Rewind"
+    target: "media_player.living_room_cc"
+    steps: 24
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: tv_play_pause
+    screen: TV
+    label: "Play/pause"
+    target: "media_player.living_room_cc"
+    steps: 25
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: tv_fast_forward
+    screen: TV
+    label: "Fast-forward"
+    target: "media_player.living_room_cc"
+    steps: 26
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+
+  # Climate
+  - id: climate_cooler
+    screen: Climate
+    label: "-0.5 °C"
+    target: "climate.home_zone_1 target temperature"
+    steps: 40
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: climate_warmer
+    screen: Climate
+    label: "+0.5 °C"
+    target: "climate.home_zone_1 target temperature"
+    steps: 41
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: climate_heat
+    screen: Climate
+    label: "Heat"
+    target: "climate.home_zone_1 HVAC mode heat"
+    steps: 42
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: climate_cool
+    screen: Climate
+    label: "Cool"
+    target: "climate.home_zone_1 HVAC mode cool"
+    steps: 43
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: climate_heat_cool
+    screen: Climate
+    label: "Heat/Cool"
+    target: "climate.home_zone_1 HVAC mode heat_cool"
+    steps: 44
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: climate_off
+    screen: Climate
+    label: "Off"
+    target: "climate.home_zone_1 HVAC mode off"
+    steps: 45
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+
+  # Rosie
+  - id: rosie_clean_all
+    screen: Rosie
+    label: "Clean all"
+    target: "vacuum.valetudo_rosie"
+    steps: 50
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: rosie_pause
+    screen: Rosie
+    label: "Pause"
+    target: "vacuum.valetudo_rosie"
+    steps: 51
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: rosie_go_home
+    screen: Rosie
+    label: "Go home"
+    target: "vacuum.valetudo_rosie"
+    steps: 52
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: rosie_region_1
+    screen: Rosie
+    label: "Region 1"
+    target: "vacuum.valetudo_rosie segment clean"
+    steps: 53
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: rosie_region_2
+    screen: Rosie
+    label: "Region 2"
+    target: "vacuum.valetudo_rosie segment clean"
+    steps: 54
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: rosie_region_3
+    screen: Rosie
+    label: "Region 3"
+    target: "vacuum.valetudo_rosie segment clean"
+    steps: 55
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: rosie_region_4
+    screen: Rosie
+    label: "Region 4"
+    target: "vacuum.valetudo_rosie segment clean"
+    steps: 56
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: rosie_region_5
+    screen: Rosie
+    label: "Region 5"
+    target: "vacuum.valetudo_rosie segment clean"
+    steps: 57
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: rosie_region_6
+    screen: Rosie
+    label: "Region 6"
+    target: "vacuum.valetudo_rosie segment clean"
+    steps: 58
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+
+  # Chester
+  - id: chester_clean_all
+    screen: Chester
+    label: "Clean all"
+    target: "vacuum.valetudo_chester"
+    steps: 70
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: chester_pause
+    screen: Chester
+    label: "Pause"
+    target: "vacuum.valetudo_chester"
+    steps: 71
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: chester_go_home
+    screen: Chester
+    label: "Go home"
+    target: "vacuum.valetudo_chester"
+    steps: 72
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: chester_region_1
+    screen: Chester
+    label: "Region 1"
+    target: "vacuum.valetudo_chester segment clean"
+    steps: 73
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: chester_region_2
+    screen: Chester
+    label: "Region 2"
+    target: "vacuum.valetudo_chester segment clean"
+    steps: 74
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: chester_region_3
+    screen: Chester
+    label: "Region 3"
+    target: "vacuum.valetudo_chester segment clean"
+    steps: 75
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: chester_region_4
+    screen: Chester
+    label: "Region 4"
+    target: "vacuum.valetudo_chester segment clean"
+    steps: 76
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: chester_region_5
+    screen: Chester
+    label: "Region 5"
+    target: "vacuum.valetudo_chester segment clean"
+    steps: 77
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: chester_region_6
+    screen: Chester
+    label: "Region 6"
+    target: "vacuum.valetudo_chester segment clean"
+    steps: 78
+    events:
+      tap: rotate_right
+      long_press: rotate_left

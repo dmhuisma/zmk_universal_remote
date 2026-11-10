@@ -1,0 +1,138 @@
+{
+  "version": "2.0.0",
+  "options": {
+    "cwd": "${workspaceFolder}/zmk/app",
+    "env": {
+      "ZEPHYR_SDK_INSTALL_DIR": "/opt/zephyr-sdk-0.17.0"
+    }
+  },
+  "tasks": [
+    {
+      "label": "Build: universal_remote",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/west",
+      "args": [
+        "build", "-p", "auto",
+        "-d", "build/universal_remote",
+        "-b", "nice_nano//zmk",
+        "--",
+        "-DSHIELD=universal_remote",
+        "-DZMK_CONFIG=${workspaceFolder}/config",
+        "-DZMK_EXTRA_MODULES=${workspaceFolder};${workspaceFolder}/zephyr-dt-lvgl;${workspaceFolder}/zmk-ir"
+      ],
+      "group": { "kind": "build" },
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Flash: universal_remote",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/west",
+      "args": [
+        "flash", "--skip-rebuild",
+        "-d", "build/universal_remote",
+        "-r", "uf2",
+        "--board-id", "nRF52840-nicenano"
+      ],
+      "dependsOn": "Build: universal_remote",
+      "group": { "kind": "build" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build: universal_remote (USB logging)",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/west",
+      "args": [
+        "build", "-p", "auto",
+        "-d", "build/universal_remote_logging",
+        "-b", "nice_nano//zmk",
+        "-S", "zmk-usb-logging",
+        "--",
+        "-DSHIELD=universal_remote",
+        "-DZMK_CONFIG=${workspaceFolder}/config",
+        "-DZMK_EXTRA_MODULES=${workspaceFolder};${workspaceFolder}/zephyr-dt-lvgl;${workspaceFolder}/zmk-ir"
+      ],
+      "group": { "kind": "build" },
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Flash: universal_remote (USB logging)",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/west",
+      "args": [
+        "flash", "--skip-rebuild",
+        "-d", "build/universal_remote_logging",
+        "-r", "uf2",
+        "--board-id", "nRF52840-nicenano"
+      ],
+      "dependsOn": "Build: universal_remote (USB logging)",
+      "group": { "kind": "build" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build: universal_remote_dongle",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/west",
+      "args": [
+        "build", "-p", "auto",
+        "-d", "build/universal_remote_dongle",
+        "-b", "nrf52840_mdk_usb_dongle",
+        "-S", "studio-rpc-usb-uart",
+        "--",
+        "-DSHIELD=universal_remote_dongle",
+        "-DZMK_CONFIG=${workspaceFolder}/config",
+        "-DZMK_EXTRA_MODULES=${workspaceFolder};${workspaceFolder}/zephyr-dt-lvgl;${workspaceFolder}/zmk-ir"
+      ],
+      "group": "build",
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Build: settings_reset",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/west",
+      "args": [
+        "build", "-p", "auto",
+        "-d", "build/settings_reset",
+        "-b", "nice_nano//zmk",
+        "--",
+        "-DSHIELD=settings_reset",
+        "-DZMK_CONFIG=${workspaceFolder}/config",
+        "-DZMK_EXTRA_MODULES=${workspaceFolder};${workspaceFolder}/zephyr-dt-lvgl;${workspaceFolder}/zmk-ir"
+      ],
+      "group": "build",
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Flash: settings_reset",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/west",
+      "args": [
+        "flash", "--skip-rebuild",
+        "-d", "build/settings_reset",
+        "-r", "uf2",
+        "--board-id", "nRF52840-nicenano"
+      ],
+      "dependsOn": "Build: settings_reset",
+      "group": { "kind": "build" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build: all",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Build: universal_remote",
+        "Build: universal_remote_dongle",
+        "Build: settings_reset"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Clean build folder",
+      "type": "process",
+      "command": "rm",
+      "group": "build",
+      "args": ["-rf", "${workspaceFolder}/zmk/app/build"],
+      "problemMatcher": []
+    }
+  ]
+}

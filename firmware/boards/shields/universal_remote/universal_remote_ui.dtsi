@@ -1,0 +1,937 @@
+// Portrait UI on the 170x320 panel. Every screen has a status bar across the
+// top and a tab bar (Lights / TV / More) across the bottom, with the content
+// for that screen between them. More leads to the Climate, Rosie and Chester
+// screens, which keep the More tab lit and start with a Back button, and holds
+// the remote's own screen brightness control.
+//
+// Home Assistant cannot send state back to the remote, so every control is a
+// stateless command button: tiles show what they do, not whether a light is
+// on. Each action tile is sent over BTHome by src/bthome.c; see the
+// bthome-buttons list at the end of this file and the table in README.md.
+// Navigation buttons (tabs, More rows, Back) and the brightness keys are not
+// sent.
+
+#include "ui_icons.h"
+
+#define UI_WIDTH 170
+#define UI_HEIGHT 320
+#define UI_STATUS_HEIGHT 24
+#define UI_TABBAR_HEIGHT 56
+#define UI_TABBAR_INSET 4
+#define UI_CONTENT_HEIGHT (UI_HEIGHT - UI_STATUS_HEIGHT - UI_TABBAR_HEIGHT)
+#define UI_PADDING 6
+// The wireless glyph's width in ui_status_font, which the battery label sits
+// beside.
+#define UI_STATUS_ICON_WIDTH 20
+
+#define UI_TILE_HEIGHT 60
+#define UI_SECTION_HEIGHT 18
+// About 6 mm on the panel, so Back is easy to hit.
+#define UI_BACK_HEIGHT 48
+#define UI_NAV_ROW_HEIGHT 50
+#define UI_STEPPER_HEIGHT 60
+#define UI_STEPPER_PADDING 6
+#define UI_STEPPER_KEY_SIZE (UI_STEPPER_HEIGHT - 2 * UI_STEPPER_PADDING)
+#define UI_NAV_ROW_INSET 12
+#define UI_NAV_ROW_TEXT_INSET 52
+
+// The corner radius of everything rounded: tiles, keys, rows, Back, the tab
+// highlight and the brightness bar. 0 is square. LVGL clamps it to half an
+// element's shorter side, so a large value such as 0x7fff makes every element
+// a pill or circle.
+#define UI_RADIUS 8
+
+// The palette, after the Chromecast with Google TV remote: Google's Material 3
+// dark surfaces, borderless tonal buttons, and Google's pastel accents for
+// icons.
+#define UI_COLOR_BACKGROUND 0x131314
+#define UI_COLOR_SURFACE_CONTAINER 0x1e1f20
+#define UI_COLOR_SURFACE_CONTAINER_HIGH 0x282a2c
+#define UI_COLOR_SURFACE_CONTAINER_HIGHEST 0x37393b
+#define UI_COLOR_ON_SURFACE 0xe3e3e3
+#define UI_COLOR_ON_SURFACE_VARIANT 0xc4c7c5
+#define UI_COLOR_OUTLINE 0x5f6368
+#define UI_COLOR_DIM 0x9aa0a6
+#define UI_COLOR_PRIMARY 0xa8c7fa
+#define UI_COLOR_PRIMARY_CONTAINER 0x0b57d0
+#define UI_COLOR_ON_PRIMARY_CONTAINER 0xffffff
+#define UI_COLOR_SECONDARY_CONTAINER 0x004a77
+#define UI_COLOR_ON_SECONDARY_CONTAINER 0xc2e7ff
+#define UI_COLOR_GREEN_CONTAINER 0x0f5223
+#define UI_COLOR_ON_GREEN_CONTAINER 0xc4eed0
+#define UI_COLOR_YELLOW 0xfdd663
+#define UI_COLOR_PURPLE 0xc58af9
+#define UI_COLOR_ORANGE 0xfcad70
+#define UI_COLOR_CYAN 0x78d9ec
+#define UI_COLOR_GREEN 0x81c995
+
+#define UI_STRINGIFY_(x) #x
+#define UI_STRINGIFY(x) UI_STRINGIFY_(x)
+
+#define UI_STYLE(style) <&style DT_LVGL_PART_MAIN DT_LVGL_STATE_DEFAULT>
+
+// dt-lvgl has no top layer, so each screen carries its own copy of the status
+// bar. src/ui_status.c updates every copy's wireless icon (ui-wireless-icons)
+// and UI_BATTERY_STATUS every copy's battery level.
+#define UI_STATUS_BAR(name, title)                                             \
+    name##_status_bar: name##_status_bar {                                     \
+        compatible = "dt-lvgl-container";                                      \
+        pos = <0 0>;                                                           \
+        width-pct = <100>;                                                     \
+        height = <UI_STATUS_HEIGHT>;                                           \
+        not-scrollable;                                                        \
+        styles = UI_STYLE(ui_status_bar_style);                                \
+                                                                               \
+        name##_title {                                                         \
+            compatible = "dt-lvgl-label";                                      \
+            text = title;                                                      \
+            align = "left-mid";                                                \
+            align-x = <UI_PADDING>;                                            \
+            styles = UI_STYLE(ui_status_icon_style);                           \
+        };                                                                     \
+                                                                               \
+        name##_battery_label: name##_battery_label {                           \
+            compatible = "dt-lvgl-label";                                      \
+            text = "";                                                         \
+            align = "right-mid";                                               \
+            align-x = <(-(UI_PADDING + UI_STATUS_ICON_WIDTH + UI_PADDING))>;   \
+            styles = UI_STYLE(ui_status_battery_style);                        \
+        };                                                                     \
+                                                                               \
+        /* LV_SYMBOL_WIFI, the glyph ESPHome used. Dimmed until connected. */  \
+        name##_wireless_icon: name##_wireless_icon {                           \
+            compatible = "dt-lvgl-label";                                      \
+            text = "\xef\x87\xab";                                             \
+            align = "right-mid";                                               \
+            align-x = <(-UI_PADDING)>;                                         \
+            disabled;                                                          \
+            styles = <&ui_status_icon_style DT_LVGL_PART_MAIN DT_LVGL_STATE_DEFAULT>, \
+                     <&ui_status_icon_dim_style DT_LVGL_PART_MAIN DT_LVGL_STATE_DISABLED>; \
+        };                                                                     \
+    };
+
+#define UI_BATTERY_STATUS(name)                                                \
+    name##_battery_status {                                                    \
+        compatible = "dt-lvgl-zmk-battery-label";                              \
+        target = <&name##_battery_label>;                                      \
+    };
+
+// The tab for the screen it sits on is drawn checked, with a highlight behind
+// its icon. Pass on for that tab and off for the others.
+#define UI_TAB_STATE_on checked;
+#define UI_TAB_STATE_off
+
+#define UI_TAB(name, tab, tab_col, icon, tab_text, action, state)              \
+    name##_tab_##tab {                                                         \
+        compatible = "dt-lvgl-button";                                         \
+        grid-cell = <tab_col 0>;                                               \
+        grid-align-self-x = "stretch";                                         \
+        grid-align-self-y = "stretch";                                         \
+        events = <&action DT_LVGL_EVENT_CLICKED>;                              \
+        styles = <&ui_tab_style DT_LVGL_PART_MAIN DT_LVGL_STATE_DEFAULT>,      \
+                 <&ui_tab_pressed_style DT_LVGL_PART_MAIN DT_LVGL_STATE_PRESSED>, \
+                 <&ui_tab_checked_style DT_LVGL_PART_MAIN DT_LVGL_STATE_CHECKED>; \
+        UI_TAB_STATE_##state                                                   \
+                                                                               \
+        name##_tab_##tab##_icon {                                              \
+            compatible = "dt-lvgl-label";                                      \
+            text = icon;                                                       \
+            align = "top-mid";                                                 \
+            styles = UI_STYLE(ui_tab_icon_##state##_style);                    \
+        };                                                                     \
+                                                                               \
+        name##_tab_##tab##_label {                                             \
+            compatible = "dt-lvgl-label";                                      \
+            text = tab_text;                                                   \
+            align = "bottom-mid";                                              \
+        };                                                                     \
+    };
+
+#define UI_TAB_BAR(name, lights_state, tv_state, more_state)                   \
+    name##_tab_bar {                                                           \
+        compatible = "dt-lvgl-container";                                      \
+        pos = <0 (UI_HEIGHT - UI_TABBAR_HEIGHT)>;                              \
+        width-pct = <100>;                                                     \
+        height = <UI_TABBAR_HEIGHT>;                                           \
+        not-scrollable;                                                        \
+        layout = "grid";                                                       \
+        grid-columns = <DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1)>; \
+        grid-rows = <DT_LVGL_GRID_FR(1)>;                                      \
+        styles = UI_STYLE(ui_tab_bar_style);                                   \
+                                                                               \
+        UI_TAB(name, lights, 0, UI_ICON_LIGHTBULB_GROUP, "Lights", show_lights, lights_state) \
+        UI_TAB(name, tv, 1, UI_ICON_TELEVISION, "TV", show_tv, tv_state)       \
+        UI_TAB(name, more, 2, UI_ICON_DOTS_HORIZONTAL_CIRCLE_OUTLINE, "More", show_more, more_state) \
+    };
+
+// The area between the status bar and the tab bar, laid out as a grid. A page
+// whose rows are taller than the area scrolls; LVGL drops a press that turns
+// into a scroll, so dragging does not click the tile it started on.
+#define UI_PAGE_PROPS(page_columns, page_rows)                                 \
+    compatible = "dt-lvgl-container";                                          \
+    pos = <0 UI_STATUS_HEIGHT>;                                                \
+    width-pct = <100>;                                                         \
+    height = <UI_CONTENT_HEIGHT>;                                              \
+    layout = "grid";                                                           \
+    grid-columns = page_columns;                                               \
+    grid-rows = page_rows;                                                     \
+    styles = <&ui_content_style DT_LVGL_PART_MAIN DT_LVGL_STATE_DEFAULT>,     \
+             <&ui_scrollbar_style DT_LVGL_PART_SCROLLBAR DT_LVGL_STATE_DEFAULT>, \
+             <&ui_scrollbar_style DT_LVGL_PART_SCROLLBAR DT_LVGL_STATE_SCROLLED>;
+
+#define UI_TWO_COLUMNS <DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1)>
+
+#define UI_TILE_PLACEMENT(cell_col, cell_row, cell_span)                       \
+    grid-cell = <cell_col cell_row>;                                           \
+    grid-col-span = <cell_span>;                                               \
+    grid-align-self-x = "stretch";                                             \
+    grid-align-self-y = "stretch";
+
+// An action tile: an icon over a short label. icon_style sets the icon's
+// colour, and tile_style the tile's own (ui_tile_style for the default).
+#define UI_TILE(name, tile_col, tile_row, tile_span, icon, icon_style, tile_text, tile_style) \
+    name: name {                                                               \
+        compatible = "dt-lvgl-button";                                         \
+        id = UI_STRINGIFY(name);                                               \
+        UI_TILE_PLACEMENT(tile_col, tile_row, tile_span)                       \
+        styles = UI_STYLE(tile_style);                                         \
+                                                                               \
+        name##_icon {                                                          \
+            compatible = "dt-lvgl-label";                                      \
+            text = icon;                                                       \
+            align = "top-mid";                                                 \
+            styles = UI_STYLE(icon_style);                                     \
+        };                                                                     \
+                                                                               \
+        name##_label {                                                         \
+            compatible = "dt-lvgl-label";                                      \
+            text = tile_text;                                                  \
+            align = "bottom-mid";                                              \
+        };                                                                     \
+    };
+
+// An action key with only a centred icon, for the media transport buttons.
+#define UI_ICON_TILE(name, tile_col, tile_row, tile_span, icon)                \
+    name: name {                                                               \
+        compatible = "dt-lvgl-button";                                         \
+        id = UI_STRINGIFY(name);                                               \
+        UI_TILE_PLACEMENT(tile_col, tile_row, tile_span)                       \
+        styles = UI_STYLE(ui_icon_key_style);                                \
+                                                                               \
+        name##_icon {                                                          \
+            compatible = "dt-lvgl-label";                                      \
+            text = icon;                                                       \
+            align = "center";                                                  \
+            styles = UI_STYLE(ui_icon_style);                                  \
+        };                                                                     \
+    };
+
+#define UI_SECTION(name, section_row, section_text)                            \
+    name {                                                                     \
+        compatible = "dt-lvgl-label";                                          \
+        text = section_text;                                                   \
+        grid-cell = <0 section_row>;                                           \
+        grid-col-span = <2>;                                                   \
+        grid-align-self-y = "end";                                             \
+        styles = UI_STYLE(ui_section_style);                                   \
+    };
+
+// A full-width row on the More screen that opens another screen.
+#define UI_NAV_ROW(name, nav_row, icon, icon_style, nav_text, action)          \
+    name {                                                                     \
+        compatible = "dt-lvgl-button";                                         \
+        UI_TILE_PLACEMENT(0, nav_row, 1)                                       \
+        events = <&action DT_LVGL_EVENT_CLICKED>;                              \
+        styles = UI_STYLE(ui_nav_row_style);                                   \
+                                                                               \
+        name##_icon {                                                          \
+            compatible = "dt-lvgl-label";                                      \
+            text = icon;                                                       \
+            align = "left-mid";                                                \
+            align-x = <UI_NAV_ROW_INSET>;                                      \
+            styles = UI_STYLE(icon_style);                                     \
+        };                                                                     \
+                                                                               \
+        name##_label {                                                         \
+            compatible = "dt-lvgl-label";                                      \
+            text = nav_text;                                                   \
+            align = "left-mid";                                                \
+            align-x = <UI_NAV_ROW_TEXT_INSET>;                                 \
+            styles = UI_STYLE(ui_nav_row_label_style);                         \
+        };                                                                     \
+                                                                               \
+        name##_chevron {                                                       \
+            compatible = "dt-lvgl-label";                                      \
+            text = UI_ICON_CHEVRON_RIGHT;                                      \
+            align = "right-mid";                                               \
+            align-x = <(-UI_NAV_ROW_INSET)>;                                   \
+            styles = UI_STYLE(ui_icon_dim_style);                              \
+        };                                                                     \
+    };
+
+// The first row of a screen opened from More, which goes back to it.
+#define UI_BACK_ROW(name)                                                      \
+    name##_back {                                                              \
+        compatible = "dt-lvgl-button";                                         \
+        UI_TILE_PLACEMENT(0, 0, 2)                                             \
+        events = <&show_more DT_LVGL_EVENT_CLICKED>;                           \
+        styles = <&ui_back_style DT_LVGL_PART_MAIN DT_LVGL_STATE_DEFAULT>,     \
+                 <&ui_back_pressed_style DT_LVGL_PART_MAIN DT_LVGL_STATE_PRESSED>; \
+                                                                               \
+        name##_back_icon {                                                     \
+            compatible = "dt-lvgl-label";                                      \
+            text = UI_ICON_CHEVRON_LEFT;                                       \
+            align = "left-mid";                                                \
+            styles = UI_STYLE(ui_icon_style);                                  \
+        };                                                                     \
+                                                                               \
+        name##_back_label {                                                    \
+            compatible = "dt-lvgl-label";                                      \
+            text = "Back";                                                     \
+            align = "left-mid";                                                \
+            align-x = <36>;                                                    \
+            styles = UI_STYLE(ui_nav_row_label_style);                         \
+        };                                                                     \
+    };
+
+// A key at one end of a stepper.
+#define UI_STEPPER_KEY(name, key_align, icon)                                  \
+    name: name {                                                               \
+        compatible = "dt-lvgl-button";                                         \
+        id = UI_STRINGIFY(name);                                               \
+        width = <UI_STEPPER_KEY_SIZE>;                                         \
+        height = <UI_STEPPER_KEY_SIZE>;                                        \
+        align = key_align;                                                     \
+        styles = UI_STYLE(ui_icon_key_style);                                \
+                                                                               \
+        name##_icon {                                                          \
+            compatible = "dt-lvgl-label";                                      \
+            text = icon;                                                       \
+            align = "center";                                                  \
+            styles = UI_STYLE(ui_icon_style);                                  \
+        };                                                                     \
+    };
+
+// A full-width bar with - and + keys at its ends, and an icon over a value
+// between them. C code handles the keys and sets name_value's text.
+#define UI_STEPPER(name, stepper_row, icon, icon_style)                        \
+    name {                                                                     \
+        compatible = "dt-lvgl-container";                                      \
+        UI_TILE_PLACEMENT(0, stepper_row, 1)                                   \
+        not-scrollable;                                                        \
+        styles = UI_STYLE(ui_stepper_style);                                   \
+                                                                               \
+        UI_STEPPER_KEY(name##_down, "left-mid", UI_ICON_MINUS)                 \
+                                                                               \
+        name##_icon {                                                          \
+            compatible = "dt-lvgl-label";                                      \
+            text = icon;                                                       \
+            align = "top-mid";                                                 \
+            styles = UI_STYLE(icon_style);                                     \
+        };                                                                     \
+                                                                               \
+        name##_value: name##_value {                                           \
+            compatible = "dt-lvgl-label";                                      \
+            text = "";                                                         \
+            align = "bottom-mid";                                              \
+        };                                                                     \
+                                                                               \
+        UI_STEPPER_KEY(name##_up, "right-mid", UI_ICON_PLUS)                   \
+    };
+
+// A vacuum's screen: clean everything, pause, go home, or clean one region.
+// Rename the regions to match the vacuum's map segments in Valetudo.
+#define UI_VACUUM_PAGE(name)                                                   \
+    name##_page {                                                              \
+        UI_PAGE_PROPS(UI_TWO_COLUMNS,                                          \
+                      <UI_BACK_HEIGHT UI_TILE_HEIGHT UI_TILE_HEIGHT UI_SECTION_HEIGHT \
+                       UI_TILE_HEIGHT UI_TILE_HEIGHT UI_TILE_HEIGHT>)          \
+                                                                               \
+        UI_BACK_ROW(name)                                                      \
+        UI_TILE(name##_clean_all, 0, 1, 2, UI_ICON_ROBOT_VACUUM, ui_icon_style, "Clean all", ui_tile_go_style) \
+        UI_TILE(name##_pause, 0, 2, 1, UI_ICON_PAUSE, ui_icon_style, "Pause", ui_tile_style) \
+        UI_TILE(name##_go_home, 1, 2, 1, UI_ICON_HOME_IMPORT_OUTLINE, ui_icon_style, "Go home", ui_tile_style) \
+        UI_SECTION(name##_regions_section, 3, "Clean a room")                  \
+        UI_TILE(name##_region_1, 0, 4, 1, UI_ICON_MAP_MARKER, ui_icon_vacuum_style, "Region 1", ui_tile_style) \
+        UI_TILE(name##_region_2, 1, 4, 1, UI_ICON_MAP_MARKER, ui_icon_vacuum_style, "Region 2", ui_tile_style) \
+        UI_TILE(name##_region_3, 0, 5, 1, UI_ICON_MAP_MARKER, ui_icon_vacuum_style, "Region 3", ui_tile_style) \
+        UI_TILE(name##_region_4, 1, 5, 1, UI_ICON_MAP_MARKER, ui_icon_vacuum_style, "Region 4", ui_tile_style) \
+        UI_TILE(name##_region_5, 0, 6, 1, UI_ICON_MAP_MARKER, ui_icon_vacuum_style, "Region 5", ui_tile_style) \
+        UI_TILE(name##_region_6, 1, 6, 1, UI_ICON_MAP_MARKER, ui_icon_vacuum_style, "Region 6", ui_tile_style) \
+    };
+
+/ {
+    ui_text_font: ui_text_font {
+        compatible = "dt-lvgl-font";
+        c-symbol = "lv_font_montserrat_14";
+    };
+
+    ui_status_font: ui_status_font {
+        compatible = "dt-lvgl-font";
+        c-symbol = "lv_font_montserrat_16";
+    };
+
+    // Material Design Icons, generated by tools/gen_icon_font.sh.
+    ui_icon_font: ui_icon_font {
+        compatible = "dt-lvgl-font";
+        c-symbol = "ui_icons_28";
+    };
+
+    ui_screen_style: ui_screen_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        bg-color-hex = <UI_COLOR_BACKGROUND>;
+        bg-opa = <255>;
+        text-font = <&ui_text_font>;
+        text-color-hex = <UI_COLOR_ON_SURFACE>;
+        pad-top = <0>;
+        pad-bottom = <0>;
+        pad-left = <0>;
+        pad-right = <0>;
+    };
+
+    // The status bar sits straight on the screen background.
+    ui_status_bar_style: ui_status_bar_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        bg-opa = <0>;
+        border-width = <0>;
+        radius = <0>;
+        pad-top = <0>;
+        pad-bottom = <0>;
+        pad-left = <0>;
+        pad-right = <0>;
+    };
+
+    ui_status_icon_style: ui_status_icon_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        text-font = <&ui_status_font>;
+        text-color-hex = <UI_COLOR_ON_SURFACE>;
+    };
+
+    ui_status_icon_dim_style: ui_status_icon_dim_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        text-color-hex = <UI_COLOR_OUTLINE>;
+    };
+
+    ui_status_battery_style: ui_status_battery_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        text-color-hex = <UI_COLOR_ON_SURFACE_VARIANT>;
+    };
+
+    ui_tab_bar_style: ui_tab_bar_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        bg-color-hex = <UI_COLOR_SURFACE_CONTAINER>;
+        bg-opa = <255>;
+        border-width = <0>;
+        radius = <0>;
+        pad-top = <UI_TABBAR_INSET>;
+        pad-bottom = <UI_TABBAR_INSET>;
+        pad-left = <UI_TABBAR_INSET>;
+        pad-right = <UI_TABBAR_INSET>;
+        pad-column = <2>;
+    };
+
+    ui_tab_style: ui_tab_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        bg-opa = <0>;
+        border-width = <0>;
+        radius = <UI_RADIUS>;
+        shadow-width = <0>;
+        text-color-hex = <UI_COLOR_ON_SURFACE_VARIANT>;
+        // The tab bar's inset leaves 48 px: the 32 px icon highlight over a 16 px
+        // label.
+        pad-top = <0>;
+        pad-bottom = <0>;
+        pad-left = <0>;
+        pad-right = <0>;
+    };
+
+    ui_tab_pressed_style: ui_tab_pressed_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        bg-color-hex = <UI_COLOR_SURFACE_CONTAINER_HIGHEST>;
+        bg-opa = <255>;
+    };
+
+    // The highlight behind the icon marks the current tab, so this clears the
+    // fill LVGL's default theme gives a checked button.
+    ui_tab_checked_style: ui_tab_checked_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        bg-opa = <0>;
+        text-color-hex = <UI_COLOR_ON_SURFACE>;
+    };
+
+    // A tab's icon, padded out to the size of the highlight drawn behind the
+    // current tab's icon.
+    ui_tab_icon_off_style: ui_tab_icon_off_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        text-font = <&ui_icon_font>;
+        radius = <UI_RADIUS>;
+        pad-top = <2>;
+        pad-bottom = <2>;
+        pad-left = <9>;
+        pad-right = <9>;
+    };
+
+    ui_tab_icon_on_style: ui_tab_icon_on_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        text-font = <&ui_icon_font>;
+        text-color-hex = <UI_COLOR_ON_SECONDARY_CONTAINER>;
+        bg-color-hex = <UI_COLOR_SECONDARY_CONTAINER>;
+        bg-opa = <255>;
+        radius = <UI_RADIUS>;
+        pad-top = <2>;
+        pad-bottom = <2>;
+        pad-left = <9>;
+        pad-right = <9>;
+    };
+
+    ui_icon_style: ui_icon_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        text-font = <&ui_icon_font>;
+    };
+
+    ui_icon_dim_style: ui_icon_dim_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        text-font = <&ui_icon_font>;
+        text-color-hex = <UI_COLOR_DIM>;
+    };
+
+    ui_icon_light_style: ui_icon_light_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        text-font = <&ui_icon_font>;
+        text-color-hex = <UI_COLOR_YELLOW>;
+    };
+
+    ui_icon_scene_style: ui_icon_scene_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        text-font = <&ui_icon_font>;
+        text-color-hex = <UI_COLOR_PURPLE>;
+    };
+
+    ui_icon_heat_style: ui_icon_heat_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        text-font = <&ui_icon_font>;
+        text-color-hex = <UI_COLOR_ORANGE>;
+    };
+
+    ui_icon_cool_style: ui_icon_cool_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        text-font = <&ui_icon_font>;
+        text-color-hex = <UI_COLOR_CYAN>;
+    };
+
+    ui_icon_vacuum_style: ui_icon_vacuum_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        text-font = <&ui_icon_font>;
+        text-color-hex = <UI_COLOR_GREEN>;
+    };
+
+    // The area below the status bar, with the page padding and gaps.
+    ui_content_style: ui_content_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        bg-opa = <0>;
+        border-width = <0>;
+        radius = <0>;
+        pad-top = <UI_PADDING>;
+        pad-bottom = <UI_PADDING>;
+        pad-left = <UI_PADDING>;
+        pad-right = <UI_PADDING>;
+        pad-row = <UI_PADDING>;
+        pad-column = <UI_PADDING>;
+    };
+
+    // Hides a page's scrollbar. The theme draws it solid while the page is
+    // scrolled, so pages apply this to the scrolled state as well.
+    ui_scrollbar_style: ui_scrollbar_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        bg-opa = <0>;
+    };
+
+    ui_section_style: ui_section_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        text-color-hex = <UI_COLOR_ON_SURFACE_VARIANT>;
+        pad-left = <4>;
+    };
+
+    // Buttons are borderless tonal surfaces, as on the Google TV remote.
+    ui_button_style: ui_button_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        bg-color-hex = <UI_COLOR_SURFACE_CONTAINER_HIGH>;
+        bg-opa = <255>;
+        border-width = <0>;
+        radius = <UI_RADIUS>;
+        shadow-width = <0>;
+        text-color-hex = <UI_COLOR_ON_SURFACE>;
+    };
+
+    // LVGL's default theme also darkens a pressed button by about 14%.
+    ui_button_pressed_style: ui_button_pressed_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        bg-color-hex = <UI_COLOR_PRIMARY_CONTAINER>;
+        bg-grad-dir = "none";
+        text-color-hex = <UI_COLOR_ON_PRIMARY_CONTAINER>;
+    };
+
+    // Half-width tiles leave about 72 px for a label; keep labels to about
+    // 9 characters.
+    ui_tile_style: ui_tile_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        radius = <UI_RADIUS>;
+        pad-top = <4>;
+        pad-bottom = <4>;
+        pad-left = <2>;
+        pad-right = <2>;
+    };
+
+    // A key with only an icon, which needs no padding.
+    ui_icon_key_style: ui_icon_key_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        radius = <UI_RADIUS>;
+    };
+
+    ui_tile_go_style: ui_tile_go_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        radius = <UI_RADIUS>;
+        pad-top = <4>;
+        pad-bottom = <4>;
+        pad-left = <2>;
+        pad-right = <2>;
+        bg-color-hex = <UI_COLOR_GREEN_CONTAINER>;
+        text-color-hex = <UI_COLOR_ON_GREEN_CONTAINER>;
+    };
+
+    ui_tile_jellyfin_style: ui_tile_jellyfin_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        radius = <UI_RADIUS>;
+        pad-top = <4>;
+        pad-bottom = <4>;
+        pad-left = <2>;
+        pad-right = <2>;
+        bg-color-hex = <0xaa5cc3>;
+        bg-grad-color-hex = <0x00a4dc>;
+        bg-grad-dir = "horizontal";
+        text-color-hex = <0xffffff>;
+    };
+
+    ui_tile_youtube_style: ui_tile_youtube_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        radius = <UI_RADIUS>;
+        pad-top = <4>;
+        pad-bottom = <4>;
+        pad-left = <2>;
+        pad-right = <2>;
+        bg-color-hex = <0xcc0000>;
+        text-color-hex = <0xffffff>;
+    };
+
+    ui_stepper_style: ui_stepper_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        bg-color-hex = <UI_COLOR_SURFACE_CONTAINER>;
+        bg-opa = <255>;
+        border-width = <0>;
+        radius = <UI_RADIUS>;
+        pad-top = <UI_STEPPER_PADDING>;
+        pad-bottom = <UI_STEPPER_PADDING>;
+        pad-left = <UI_STEPPER_PADDING>;
+        pad-right = <UI_STEPPER_PADDING>;
+    };
+
+    ui_nav_row_style: ui_nav_row_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        radius = <UI_RADIUS>;
+        pad-left = <0>;
+        pad-right = <0>;
+    };
+
+    ui_nav_row_label_style: ui_nav_row_label_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        text-font = <&ui_status_font>;
+    };
+
+    // Filled, so the whole of the Back target is visible.
+    ui_back_style: ui_back_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        bg-color-hex = <UI_COLOR_SURFACE_CONTAINER>;
+        bg-opa = <255>;
+        border-width = <0>;
+        radius = <UI_RADIUS>;
+        pad-left = <12>;
+        pad-right = <12>;
+    };
+
+    ui_back_pressed_style: ui_back_pressed_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        bg-color-hex = <UI_COLOR_SURFACE_CONTAINER_HIGHEST>;
+        bg-opa = <255>;
+        text-color-hex = <UI_COLOR_ON_SURFACE>;
+    };
+
+    ui_theme: ui_theme {
+        compatible = "dt-lvgl-theme";
+        primary-color-hex = <UI_COLOR_PRIMARY>;
+        secondary-color-hex = <UI_COLOR_SURFACE_CONTAINER_HIGH>;
+        dark;
+        button-styles = <&ui_button_style DT_LVGL_PART_MAIN DT_LVGL_STATE_DEFAULT>,
+                        <&ui_button_pressed_style DT_LVGL_PART_MAIN DT_LVGL_STATE_PRESSED>;
+    };
+
+    show_lights: show_lights {
+        compatible = "dt-lvgl-action-screen-load";
+        #dt-lvgl-action-cells = <1>;
+        screen-id = "lights";
+    };
+
+    show_tv: show_tv {
+        compatible = "dt-lvgl-action-screen-load";
+        #dt-lvgl-action-cells = <1>;
+        screen-id = "tv";
+    };
+
+    show_more: show_more {
+        compatible = "dt-lvgl-action-screen-load";
+        #dt-lvgl-action-cells = <1>;
+        screen-id = "more";
+    };
+
+    show_climate: show_climate {
+        compatible = "dt-lvgl-action-screen-load";
+        #dt-lvgl-action-cells = <1>;
+        screen-id = "climate";
+    };
+
+    show_rosie: show_rosie {
+        compatible = "dt-lvgl-action-screen-load";
+        #dt-lvgl-action-cells = <1>;
+        screen-id = "rosie";
+    };
+
+    show_chester: show_chester {
+        compatible = "dt-lvgl-action-screen-load";
+        #dt-lvgl-action-cells = <1>;
+        screen-id = "chester";
+    };
+
+    ui: ui {
+        compatible = "dt-lvgl";
+        display = <&st7789v>;
+        theme = <&ui_theme>;
+        default-screen = "lights";
+
+        lights_screen {
+            compatible = "dt-lvgl-screen";
+            id = "lights";
+            not-scrollable;
+            styles = UI_STYLE(ui_screen_style);
+
+            UI_STATUS_BAR(lights, "Lights")
+
+            lights_page {
+                UI_PAGE_PROPS(UI_TWO_COLUMNS,
+                              <UI_SECTION_HEIGHT UI_TILE_HEIGHT UI_SECTION_HEIGHT UI_TILE_HEIGHT
+                               UI_SECTION_HEIGHT UI_TILE_HEIGHT UI_SECTION_HEIGHT UI_TILE_HEIGHT
+                               UI_TILE_HEIGHT>)
+
+                UI_SECTION(lights_living_room_section, 0, "Living Room")
+                UI_TILE(light_living_room_left, 0, 1, 1, UI_ICON_FLOOR_LAMP, ui_icon_light_style, "Left", ui_tile_style)
+                UI_TILE(light_living_room_right, 1, 1, 1, UI_ICON_FLOOR_LAMP, ui_icon_light_style, "Right", ui_tile_style)
+
+                UI_SECTION(lights_kitchen_section, 2, "Kitchen")
+                UI_TILE(light_kitchen_overhead, 0, 3, 1, UI_ICON_LIGHT_RECESSED, ui_icon_light_style, "Overhead", ui_tile_style)
+                UI_TILE(light_kitchen_table, 1, 3, 1, UI_ICON_CEILING_LIGHT, ui_icon_light_style, "Table", ui_tile_style)
+
+                UI_SECTION(lights_hallway_section, 4, "Hallway")
+                UI_TILE(light_hallway, 0, 5, 2, UI_ICON_LIGHTBULB, ui_icon_light_style, "Hallway", ui_tile_style)
+
+                UI_SECTION(lights_scenes_section, 6, "Scenes")
+                UI_TILE(scene_movie, 0, 7, 1, UI_ICON_MOVIE_OPEN, ui_icon_scene_style, "Movie", ui_tile_style)
+                UI_TILE(scene_bright, 1, 7, 1, UI_ICON_BRIGHTNESS_7, ui_icon_scene_style, "Bright", ui_tile_style)
+                UI_TILE(scene_evening, 0, 8, 1, UI_ICON_WEATHER_NIGHT, ui_icon_scene_style, "Evening", ui_tile_style)
+                UI_TILE(scene_all_off, 1, 8, 1, UI_ICON_LIGHTBULB_OFF, ui_icon_dim_style, "All off", ui_tile_style)
+            };
+
+            UI_TAB_BAR(lights, on, off, off)
+        };
+
+        // Power, volume and navigation are on the hardware keys.
+        tv_screen {
+            compatible = "dt-lvgl-screen";
+            id = "tv";
+            not-scrollable;
+            styles = UI_STYLE(ui_screen_style);
+
+            UI_STATUS_BAR(tv, "TV")
+
+            // Six columns, so a row holds two wide tiles or three narrow ones.
+            tv_page {
+                UI_PAGE_PROPS(<DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1)
+                               DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1)>,
+                              <DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1)>)
+                not-scrollable;
+
+                UI_TILE(tv_jellyfin, 0, 0, 3, UI_ICON_PLAY_BOX_MULTIPLE, ui_icon_style, "Jellyfin", ui_tile_jellyfin_style)
+                UI_TILE(tv_youtube, 3, 0, 3, UI_ICON_YOUTUBE, ui_icon_style, "YouTube", ui_tile_youtube_style)
+                UI_TILE(tv_input, 0, 1, 3, UI_ICON_VIDEO_INPUT_HDMI, ui_icon_style, "Input", ui_tile_style)
+                UI_TILE(tv_mute, 3, 1, 3, UI_ICON_VOLUME_OFF, ui_icon_style, "Mute", ui_tile_style)
+                UI_ICON_TILE(tv_rewind, 0, 2, 2, UI_ICON_REWIND)
+                UI_ICON_TILE(tv_play_pause, 2, 2, 2, UI_ICON_PLAY_PAUSE)
+                UI_ICON_TILE(tv_fast_forward, 4, 2, 2, UI_ICON_FAST_FORWARD)
+            };
+
+            UI_TAB_BAR(tv, off, on, off)
+        };
+
+        more_screen {
+            compatible = "dt-lvgl-screen";
+            id = "more";
+            not-scrollable;
+            styles = UI_STYLE(ui_screen_style);
+
+            UI_STATUS_BAR(more, "More")
+
+            more_page {
+                UI_PAGE_PROPS(<DT_LVGL_GRID_FR(1)>,
+                              <UI_NAV_ROW_HEIGHT UI_NAV_ROW_HEIGHT UI_NAV_ROW_HEIGHT
+                               UI_STEPPER_HEIGHT>)
+                not-scrollable;
+
+                UI_NAV_ROW(more_climate, 0, UI_ICON_THERMOSTAT, ui_icon_heat_style, "Climate", show_climate)
+                UI_NAV_ROW(more_rosie, 1, UI_ICON_ROBOT_VACUUM, ui_icon_vacuum_style, "Rosie", show_rosie)
+                UI_NAV_ROW(more_chester, 2, UI_ICON_ROBOT_VACUUM, ui_icon_vacuum_style, "Chester", show_chester)
+
+                // The remote's own backlight, handled by src/brightness.c.
+                UI_STEPPER(brightness, 3, UI_ICON_BRIGHTNESS_6, ui_icon_light_style)
+            };
+
+            UI_TAB_BAR(more, off, off, on)
+        };
+
+        // The whole-home thermostat. Without a setpoint readout, the
+        // temperature buttons step it rather than set it.
+        climate_screen {
+            compatible = "dt-lvgl-screen";
+            id = "climate";
+            not-scrollable;
+            styles = UI_STYLE(ui_screen_style);
+
+            UI_STATUS_BAR(climate, "Climate")
+
+            climate_page {
+                UI_PAGE_PROPS(UI_TWO_COLUMNS,
+                              <UI_BACK_HEIGHT DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1)>)
+                not-scrollable;
+
+                UI_BACK_ROW(climate)
+                UI_TILE(climate_cooler, 0, 1, 1, UI_ICON_MINUS, ui_icon_cool_style, "0.5\xc2\xb0C", ui_tile_style)
+                UI_TILE(climate_warmer, 1, 1, 1, UI_ICON_PLUS, ui_icon_heat_style, "0.5\xc2\xb0C", ui_tile_style)
+                UI_TILE(climate_heat, 0, 2, 1, UI_ICON_FIRE, ui_icon_heat_style, "Heat", ui_tile_style)
+                UI_TILE(climate_cool, 1, 2, 1, UI_ICON_SNOWFLAKE, ui_icon_cool_style, "Cool", ui_tile_style)
+                UI_TILE(climate_heat_cool, 0, 3, 1, UI_ICON_SUN_SNOWFLAKE_VARIANT, ui_icon_style, "Heat/Cool", ui_tile_style)
+                UI_TILE(climate_off, 1, 3, 1, UI_ICON_POWER, ui_icon_dim_style, "Off", ui_tile_style)
+            };
+
+            UI_TAB_BAR(climate, off, off, on)
+        };
+
+        rosie_screen {
+            compatible = "dt-lvgl-screen";
+            id = "rosie";
+            not-scrollable;
+            styles = UI_STYLE(ui_screen_style);
+
+            UI_STATUS_BAR(rosie, "Rosie")
+            UI_VACUUM_PAGE(rosie)
+            UI_TAB_BAR(rosie, off, off, on)
+        };
+
+        chester_screen {
+            compatible = "dt-lvgl-screen";
+            id = "chester";
+            not-scrollable;
+            styles = UI_STYLE(ui_screen_style);
+
+            UI_STATUS_BAR(chester, "Chester")
+            UI_VACUUM_PAGE(chester)
+            UI_TAB_BAR(chester, off, off, on)
+        };
+    };
+
+    UI_BATTERY_STATUS(lights)
+    UI_BATTERY_STATUS(tv)
+    UI_BATTERY_STATUS(more)
+    UI_BATTERY_STATUS(climate)
+    UI_BATTERY_STATUS(rosie)
+    UI_BATTERY_STATUS(chester)
+};
+
+/ {
+    zephyr,user {
+        // src/bthome.c sends a press of each of these buttons to Home
+        // Assistant as the number at the same position in
+        // bthome-button-numbers. Numbers come in a block per screen, with
+        // room to add tiles without renumbering the others; README.md lists
+        // them all.
+        bthome-buttons =
+            // Lights, 1-19
+            <&light_living_room_left &light_living_room_right
+             &light_kitchen_overhead &light_kitchen_table &light_hallway
+             &scene_movie &scene_bright &scene_evening &scene_all_off>,
+            // TV, 20-39
+            <&tv_jellyfin &tv_youtube &tv_input &tv_mute
+             &tv_rewind &tv_play_pause &tv_fast_forward>,
+            // Climate, 40-49
+            <&climate_cooler &climate_warmer
+             &climate_heat &climate_cool &climate_heat_cool &climate_off>,
+            // Rosie, 50-69
+            <&rosie_clean_all &rosie_pause &rosie_go_home
+             &rosie_region_1 &rosie_region_2 &rosie_region_3
+             &rosie_region_4 &rosie_region_5 &rosie_region_6>,
+            // Chester, 70-89
+            <&chester_clean_all &chester_pause &chester_go_home
+             &chester_region_1 &chester_region_2 &chester_region_3
+             &chester_region_4 &chester_region_5 &chester_region_6>;
+        bthome-button-numbers =
+            <1 2 3 4 5 10 11 12 13>,
+            <20 21 22 23 24 25 26>,
+            <40 41 42 43 44 45>,
+            <50 51 52 53 54 55 56 57 58>,
+            <70 71 72 73 74 75 76 77 78>;
+
+        // src/ui_status.c dims each screen's copy of the wireless icon until
+        // the wireless link is up.
+        ui-wireless-icons = <&lights_wireless_icon &tv_wireless_icon &more_wireless_icon
+                             &climate_wireless_icon &rosie_wireless_icon
+                             &chester_wireless_icon>;
+    };
+};

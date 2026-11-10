@@ -1,0 +1,73 @@
+
+#
+# Dongle
+#
+
+if SHIELD_UNIVERSAL_REMOTE_DONGLE
+
+# Name must be less than 16 characters long!
+config ZMK_KEYBOARD_NAME
+    default "Universal"
+
+# TEMPORARY: moved here from "All" while the remote builds as a unibody.
+# Delete this when the "All" ZMK_SPLIT default is uncommented again.
+config ZMK_SPLIT
+    default y
+
+config ZMK_SPLIT_ROLE_CENTRAL
+    default y
+
+# Set this to the number of peripherals your dongle will have.
+# For a unibody, this would be 1. If you have left and right halves, set it to 2, etc.
+config ZMK_SPLIT_BLE_CENTRAL_PERIPHERALS
+    default 1
+
+# Set this to ZMK_SPLIT_BLE_CENTRAL_PERIPHERALS + your desired number of BT profiles (default is 5)
+config BT_MAX_CONN
+    default 6
+
+# Set this to the same number as BT_MAX_CONN
+config BT_MAX_PAIRED
+    default 6
+
+config ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_PROXY
+    default y
+
+config ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING
+    default y
+
+endif
+
+#
+# Remote only
+#
+
+if SHIELD_UNIVERSAL_REMOTE
+
+# TEMPORARY: the unibody build pairs with the PC directly, so it needs a name.
+# Delete this with the ZMK_SPLIT change below.
+config ZMK_KEYBOARD_NAME
+    default "Universal"
+
+endif
+
+#
+# All
+#
+
+# TEMPORARY: the remote builds as a unibody (non-split) BLE central so it
+# can connect straight to a PC without the dongle. Uncomment to restore the
+# dongle setup, and delete the copy in the dongle section.
+# config ZMK_SPLIT
+#     default y
+
+config ZMK_BATTERY_REPORTING
+    default y
+
+# Enable experimental BLE settings
+# this helps the trackpoint work better
+config BT_CTLR_ADVANCED_FEATURES
+    default y
+
+config ZMK_BLE_EXPERIMENTAL_CONN
+    default y

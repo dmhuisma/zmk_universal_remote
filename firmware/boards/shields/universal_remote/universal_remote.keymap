@@ -1,0 +1,82 @@
+
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/pointing.h>
+#include <dt-bindings/zmk/outputs.h>
+#include <dt-bindings/zmk/bt.h>
+
+#define COLEMAK         0
+#define QWERTY          1
+#define GAME            2
+#define MOUSE        	3
+#define RAISE           4
+#define LOWER        	5
+
+#define USE_HOMEROW_MODS
+
+#ifdef USE_HOMEROW_MODS
+//
+// qwerty homerow mods
+//
+#define HR_Q_A                  &hml LGUI A
+#define HR_Q_S                  &hml LALT S
+#define HR_Q_D                  &hml LCTL D
+#define HR_Q_F                  &hml LSHIFT F
+#define HR_Q_J                  &hmr RSHIFT J
+#define HR_Q_K                  &hmr RCTL K
+#define HR_Q_L                  &hmr RALT L
+#define HR_Q_SC                 &hmr RGUI SEMICOLON
+//
+// colemak-dh homerow mods
+//
+#define HR_C_A                  &hml LGUI A
+#define HR_C_R                  &hml LALT R
+#define HR_C_S                  &hml LCTL S
+#define HR_C_T                  &hml LSHIFT T
+#define HR_C_N                  &hmr RSHIFT N
+#define HR_C_E                  &hmr RCTL E
+#define HR_C_I                  &hmr RALT I
+#define HR_C_O                  &hmr RGUI O
+#else
+//
+// qwerty homerow mods
+//
+#define HR_Q_A                  &kp A
+#define HR_Q_S                  &kp S
+#define HR_Q_D                  &kp D
+#define HR_Q_F                  &kp F
+#define HR_Q_J                  &kp J
+#define HR_Q_K                  &kp K
+#define HR_Q_L                  &kp L
+#define HR_Q_SC                 &kp SEMICOLON
+//
+// colemak-dh homerow mods
+//
+#define HR_C_A                  &kp A
+#define HR_C_R                  &kp R
+#define HR_C_S                  &kp S
+#define HR_C_T                  &kp T
+#define HR_C_N                  &kp N
+#define HR_C_E                  &kp E
+#define HR_C_I                  &kp I
+#define HR_C_O                  &kp O
+#endif
+
+/ {
+    keymap {
+        compatible = "zmk,keymap";
+
+        main_layer {
+            // Placeholders until the keys are assigned, laid out as in
+            // universal_remote.dtsi.
+            bindings = <
+                        &none
+                &none   &none   &none
+                        &none
+                &none           &none
+                &none           &none
+                &none           &none
+            >;
+        };
+    };
+};
