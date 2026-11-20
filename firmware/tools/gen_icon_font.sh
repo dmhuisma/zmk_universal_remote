@@ -58,6 +58,9 @@ ICONS=(
     map-marker
     # Screen brightness, on the More screen
     brightness-6
+    # The Touchpad screen's motion toggle, off and on
+    checkbox-blank-outline
+    checkbox-marked
 )
 
 root=$(cd "$(dirname "$0")/.." && pwd)

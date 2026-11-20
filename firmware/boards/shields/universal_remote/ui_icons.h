@@ -34,3 +34,5 @@
 #define UI_ICON_HOME_IMPORT_OUTLINE "\xee\x80\x9c" // mdi:home-import-outline
 #define UI_ICON_MAP_MARKER "\xee\x80\x9d" // mdi:map-marker
 #define UI_ICON_BRIGHTNESS_6 "\xee\x80\x9e" // mdi:brightness-6
+#define UI_ICON_CHECKBOX_BLANK_OUTLINE "\xee\x80\x9f" // mdi:checkbox-blank-outline
+#define UI_ICON_CHECKBOX_MARKED "\xee\x80\xa0" // mdi:checkbox-marked

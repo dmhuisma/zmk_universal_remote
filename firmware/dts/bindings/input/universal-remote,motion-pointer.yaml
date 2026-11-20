@@ -1,0 +1,85 @@
+description: |
+  Moves the mouse pointer as the remote turns, from the MPU6050's gyroscope
+  (src/motion_pointer.c), while the Touchpad screen is shown and its toggle is
+  on. The toggle's state is saved, so it stays through sleep and power-off.
+  The node is an input device of its own: point a zmk,input-listener at it.
+
+  Turning the remote left and right (yaw) moves the pointer across, and
+  tilting it up and down (pitch) moves it up and down. Which gyroscope axes
+  those are depends on how the MPU6050 sits in the remote: if the pointer
+  moves the wrong way, set invert-x or invert-y, and if tilting moves it
+  across, swap the axes.
+
+compatible: "universal-remote,motion-pointer"
+
+properties:
+  i2c-bus:
+    type: phandle
+    required: true
+    description: The I2C bus the MPU6050 is on.
+
+  address:
+    type: int
+    default: 0x68
+    description: The MPU6050's I2C address, 0x68 with AD0 low.
+
+  toggle:
+    type: phandle
+    required: true
+    description: A checkable dt-lvgl-button that turns motion on and off.
+
+  toggle-icon:
+    type: phandle
+    required: true
+    description: A label in the toggle whose text is icon-on or icon-off.
+
+  icon-on:
+    type: string
+    required: true
+
+  icon-off:
+    type: string
+    required: true
+
+  x-axis:
+    type: string
+    default: "z"
+    enum: ["x", "y", "z"]
+    description: The gyroscope axis that moves the pointer across.
+
+  y-axis:
+    type: string
+    default: "y"
+    enum: ["x", "y", "z"]
+    description: The gyroscope axis that moves the pointer up and down.
+
+  invert-x:
+    type: boolean
+
+  invert-y:
+    type: boolean
+
+  pixels-per-degree:
+    type: int
+    default: 25
+    description: How far the pointer moves for each degree the remote turns.
+
+  deadzone-mdps:
+    type: int
+    default: 1000
+    description: |
+      Turning slower than this, in thousandths of a degree per second, does
+      not move the pointer, so a hand's tremor holds it still. Faster turns
+      have this much taken off.
+
+  sample-period-ms:
+    type: int
+    default: 10
+    description: How often the gyroscope is read.
+
+  touch-holdoff-ms:
+    type: int
+    default: 150
+    description: |
+      How long after a finger lifts from the pad turning the remote moves the
+      pointer again. It ignores turning while a finger is on the pad too.

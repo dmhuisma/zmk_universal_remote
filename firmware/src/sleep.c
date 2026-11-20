@@ -35,6 +35,7 @@ LOG_MODULE_REGISTER(remote_sleep, CONFIG_ZMK_LOG_LEVEL);
 // AD0 is low.
 #define MPU6050_ADDR 0x68
 
+#define MPU6050_CONFIG 0x1A
 #define MPU6050_ACCEL_CONFIG 0x1C
 #define MPU6050_MOT_THR 0x1F
 #define MPU6050_MOT_DUR 0x20
@@ -136,6 +137,9 @@ static int mpu6050_arm_wake_on_motion(void)
     TRY(mpu6050_write(MPU6050_INT_ENABLE, 0x00));
     TRY(mpu6050_write(MPU6050_PWR_MGMT_1, 0x08));
     TRY(mpu6050_write(MPU6050_PWR_MGMT_2, 0x07));
+    // No low-pass filter, as at power-on. src/motion_pointer.c sets one while
+    // it reads the gyroscope, and sleep can come while it is.
+    TRY(mpu6050_write(MPU6050_CONFIG, 0x00));
 
     // After power-up the MPU6050 sits in sleep mode until the write above.
     // Give the accelerometer time to start, or the reference held below is

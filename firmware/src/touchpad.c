@@ -14,6 +14,15 @@
 
 LOG_MODULE_REGISTER(touchpad, CONFIG_ZMK_LOG_LEVEL);
 
+// src/motion_pointer.c, which also moves the pointer as the remote turns,
+// follows the screen and the finger on the pad.
+#if DT_HAS_COMPAT_STATUS_OKAY(universal_remote_motion_pointer)
+#include "motion_pointer.h"
+#else
+static inline void motion_pointer_set_shown(bool shown) { ARG_UNUSED(shown); }
+static inline void motion_pointer_set_touching(bool touching) { ARG_UNUSED(touching); }
+#endif
+
 #if DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT)
 
 BUILD_ASSERT(DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT) == 1, "Only one touchpad is supported");
@@ -159,6 +168,7 @@ static void touch_down_or_move(int32_t x, int32_t y)
     k_spin_unlock(&lock, key);
 
     if (start_long_press) {
+        motion_pointer_set_touching(true);
         k_work_reschedule(&long_press_work, K_MSEC(LONG_PRESS_MS));
     }
     if (cancel_long_press) {
@@ -172,13 +182,17 @@ static void touch_down_or_move(int32_t x, int32_t y)
 static void touch_up(void)
 {
     k_spinlock_key_t key = k_spin_lock(&lock);
-    bool tap = touching && owned && !moving && !consumed &&
-               k_uptime_get() - start_ms <= TAP_TIMEOUT_MS;
+    bool was_owned = touching && owned;
+    bool tap = was_owned && !moving && !consumed && k_uptime_get() - start_ms <= TAP_TIMEOUT_MS;
     touching = false;
     owned = false;
     k_spin_unlock(&lock, key);
 
     k_work_cancel_delayable(&long_press_work);
+
+    if (was_owned) {
+        motion_pointer_set_touching(false);
+    }
 
     if (tap) {
         click(INPUT_BTN_0);
@@ -247,6 +261,8 @@ static void set_shown(bool show)
     if (!show) {
         k_work_cancel_delayable(&long_press_work);
     }
+
+    motion_pointer_set_shown(show);
 }
 
 static void screen_event_cb(lv_event_t *e)
