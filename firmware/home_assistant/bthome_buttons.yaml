@@ -63,33 +63,25 @@ buttons:
     events:
       tap: rotate_right
       long_press: rotate_left
-  - id: scene_movie
+  - id: scene_tv
     screen: Lights
-    label: "Movie"
+    label: "TV"
     target: "scene to create"
     steps: 10
     events:
       tap: rotate_right
       long_press: rotate_left
-  - id: scene_bright
+  - id: scene_on
     screen: Lights
-    label: "Bright"
+    label: "On"
     target: "scene to create"
     steps: 11
     events:
       tap: rotate_right
       long_press: rotate_left
-  - id: scene_evening
+  - id: scene_off
     screen: Lights
-    label: "Evening"
-    target: "scene to create"
-    steps: 12
-    events:
-      tap: rotate_right
-      long_press: rotate_left
-  - id: scene_all_off
-    screen: Lights
-    label: "All off"
+    label: "Off"
     target: "living room, kitchen and hallway lights"
     steps: 13
     events:
@@ -97,22 +89,6 @@ buttons:
       long_press: rotate_left
 
   # TV
-  - id: tv_jellyfin
-    screen: TV
-    label: "Jellyfin"
-    target: "launch Jellyfin on media_player.living_room_cc"
-    steps: 20
-    events:
-      tap: rotate_right
-      long_press: rotate_left
-  - id: tv_youtube
-    screen: TV
-    label: "YouTube"
-    target: "launch YouTube on media_player.living_room_cc"
-    steps: 21
-    events:
-      tap: rotate_right
-      long_press: rotate_left
   - id: tv_input
     screen: TV
     label: "Input"
@@ -229,51 +205,35 @@ buttons:
     events:
       tap: rotate_right
       long_press: rotate_left
-  - id: rosie_region_1
+  - id: rosie_master_bedroom
     screen: Rosie
-    label: "Region 1"
-    target: "vacuum.valetudo_rosie segment clean"
+    label: "Master"
+    target: "vacuum.valetudo_rosie segment clean: Master bedroom"
     steps: 53
     events:
       tap: rotate_right
       long_press: rotate_left
-  - id: rosie_region_2
+  - id: rosie_guest_bedroom
     screen: Rosie
-    label: "Region 2"
-    target: "vacuum.valetudo_rosie segment clean"
+    label: "Guest"
+    target: "vacuum.valetudo_rosie segment clean: Guest bedroom"
     steps: 54
     events:
       tap: rotate_right
       long_press: rotate_left
-  - id: rosie_region_3
+  - id: rosie_iris_bedroom
     screen: Rosie
-    label: "Region 3"
-    target: "vacuum.valetudo_rosie segment clean"
+    label: "Iris"
+    target: "vacuum.valetudo_rosie segment clean: Iris' bedroom"
     steps: 55
     events:
       tap: rotate_right
       long_press: rotate_left
-  - id: rosie_region_4
+  - id: rosie_marcus_bedroom
     screen: Rosie
-    label: "Region 4"
-    target: "vacuum.valetudo_rosie segment clean"
+    label: "Marcus"
+    target: "vacuum.valetudo_rosie segment clean: Marcus' bedroom"
     steps: 56
-    events:
-      tap: rotate_right
-      long_press: rotate_left
-  - id: rosie_region_5
-    screen: Rosie
-    label: "Region 5"
-    target: "vacuum.valetudo_rosie segment clean"
-    steps: 57
-    events:
-      tap: rotate_right
-      long_press: rotate_left
-  - id: rosie_region_6
-    screen: Rosie
-    label: "Region 6"
-    target: "vacuum.valetudo_rosie segment clean"
-    steps: 58
     events:
       tap: rotate_right
       long_press: rotate_left
@@ -303,51 +263,35 @@ buttons:
     events:
       tap: rotate_right
       long_press: rotate_left
-  - id: chester_region_1
+  - id: chester_kitchen
     screen: Chester
-    label: "Region 1"
-    target: "vacuum.valetudo_chester segment clean"
+    label: "Kitchen"
+    target: "vacuum.valetudo_chester segment clean: Kitchen"
     steps: 73
     events:
       tap: rotate_right
       long_press: rotate_left
-  - id: chester_region_2
+  - id: chester_play_room
     screen: Chester
-    label: "Region 2"
-    target: "vacuum.valetudo_chester segment clean"
+    label: "Playroom"
+    target: "vacuum.valetudo_chester segment clean: Play room"
     steps: 74
     events:
       tap: rotate_right
       long_press: rotate_left
-  - id: chester_region_3
+  - id: chester_living_room
     screen: Chester
-    label: "Region 3"
-    target: "vacuum.valetudo_chester segment clean"
+    label: "Living rm"
+    target: "vacuum.valetudo_chester segment clean: Living room"
     steps: 75
     events:
       tap: rotate_right
       long_press: rotate_left
-  - id: chester_region_4
+  - id: chester_front_door
     screen: Chester
-    label: "Region 4"
-    target: "vacuum.valetudo_chester segment clean"
+    label: "Front dr"
+    target: "vacuum.valetudo_chester segment clean: Front door"
     steps: 76
-    events:
-      tap: rotate_right
-      long_press: rotate_left
-  - id: chester_region_5
-    screen: Chester
-    label: "Region 5"
-    target: "vacuum.valetudo_chester segment clean"
-    steps: 77
-    events:
-      tap: rotate_right
-      long_press: rotate_left
-  - id: chester_region_6
-    screen: Chester
-    label: "Region 6"
-    target: "vacuum.valetudo_chester segment clean"
-    steps: 78
     events:
       tap: rotate_right
       long_press: rotate_left

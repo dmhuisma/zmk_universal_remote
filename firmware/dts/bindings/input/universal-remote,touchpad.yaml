@@ -1,0 +1,44 @@
+description: |
+  Turns touches on one dt-lvgl screen into relative mouse input, so the touch
+  screen works as a touchpad (src/touchpad.c). The node is an input device of
+  its own: point a zmk,input-listener at it.
+
+  A touch counts only if it starts inside the area widget while the screen is
+  shown. Dragging reports INPUT_REL_X and INPUT_REL_Y, a quick tap clicks
+  INPUT_BTN_0, and holding still clicks INPUT_BTN_1.
+
+compatible: "universal-remote,touchpad"
+
+properties:
+  touch-device:
+    type: phandle
+    required: true
+    description: The touch controller, which reports INPUT_ABS_X, INPUT_ABS_Y and INPUT_BTN_TOUCH.
+
+  screen:
+    type: phandle
+    required: true
+    description: The dt-lvgl-screen the touchpad is on.
+
+  area:
+    type: phandle
+    required: true
+    description: The dt-lvgl widget a touch has to start on.
+
+  tap-timeout-ms:
+    type: int
+    default: 180
+    description: A touch lifted within this long, without moving, is a left click.
+
+  tap-slop-px:
+    type: int
+    default: 6
+    description: |
+      How far a touch can travel, in panel pixels, and still be a tap or a long
+      press. Nothing moves until it goes further, so a tap does not nudge the
+      pointer.
+
+  long-press-ms:
+    type: int
+    default: 500
+    description: A touch held this long without moving is a right click.

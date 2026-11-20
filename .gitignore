@@ -2,3 +2,9 @@
 board/.history
 
 firmware/tools/__pycache__/
+
+case/universal_remote_case.sc.bak
+
+case/.~universal_remote_case.sc.lock
+
+case/output/

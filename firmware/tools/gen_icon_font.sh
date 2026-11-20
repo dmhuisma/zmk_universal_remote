@@ -34,8 +34,7 @@ ICONS=(
     weather-night
     lightbulb-off
     # TV
-    play-box-multiple
-    youtube
+    mouse
     video-input-hdmi
     volume-off
     rewind

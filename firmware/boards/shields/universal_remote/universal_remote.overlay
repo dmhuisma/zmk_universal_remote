@@ -1,6 +1,7 @@
 #include <zephyr/dt-bindings/mipi_dbi/mipi_dbi.h>
 #include <zephyr/dt-bindings/pwm/pwm.h>
 #include <dt-bindings/dt-lvgl/dt-lvgl.h>
+#include <input/processors.dtsi>
 #include "universal_remote.dtsi"
 #include "universal_remote_ui.dtsi"
 
@@ -52,6 +53,22 @@
     lvgl_pointer {
         compatible = "zephyr,lvgl-pointer-input";
         input = <&cst816>;
+    };
+
+    // The Touchpad screen's pad, as a mouse for the host (src/touchpad.c).
+    touchpad: touchpad {
+        compatible = "universal-remote,touchpad";
+        touch-device = <&cst816>;
+        screen = <&touchpad_screen>;
+        area = <&touchpad_area>;
+    };
+
+    touchpad_listener {
+        compatible = "zmk,input-listener";
+        device = <&touchpad>;
+        // The pad is about 158 px wide, so it moves the pointer 3 host pixels
+        // per panel pixel.
+        input-processors = <&zip_xy_scaler 3 1>;
     };
 
     backlight: pwmleds {

@@ -66,9 +66,20 @@ BUILD_ASSERT(I2C_RECOVER_INIT_PRIORITY < CONFIG_INPUT_INIT_PRIORITY,
 #define BOOTLOADER_MAGIC_SKIP 0x6D
 
 // GPREGRET2, which nothing else uses. Like GPREGRET it is kept through System
-// OFF and cleared at power-on, so it carries the screen shown at sleep over to
-// the wake. It holds that screen's index plus one; 0 leaves the default screen.
+// OFF and cleared at power-on, so it carries the screen shown at sleep, and how
+// far its page was scrolled, over to the wake. It is only 8 bits wide:
+//   bits 0-2  the screen's index plus one; 0 leaves the default screen
+//   bits 3-7  the page's scroll offset in SCROLL_STEP pixel steps
 #define SCREEN_GPREGRET 1
+#define SCREEN_BITS 3
+#define SCREEN_MASK BIT_MASK(SCREEN_BITS)
+#define SCROLL_MAX_STEPS BIT_MASK(8 - SCREEN_BITS)
+
+// The offset is rounded to the nearest step, so a page comes back within half
+// a step of where it was. Top and bottom come back exactly: LVGL clamps a
+// rounded-up offset to the end of the page. Offsets past SCROLL_MAX_STEPS
+// steps (248 px) come back at that offset instead.
+#define SCROLL_STEP 8
 
 #define DISPLAY_DBI DT_PARENT(DT_CHOSEN(zephyr_display))
 #define TOUCH_NODE DT_NODELABEL(cst816)
@@ -100,6 +111,9 @@ static const struct device *const ui = DEVICE_DT_GET(UI_NODE);
 static const struct device *const ui_screens[] = {
     DT_FOREACH_CHILD_STATUS_OKAY(UI_NODE, UI_SCREEN)};
 static const char *const ui_screen_ids[] = {DT_FOREACH_CHILD_STATUS_OKAY(UI_NODE, UI_SCREEN_ID)};
+
+BUILD_ASSERT(ARRAY_SIZE(ui_screens) <= SCREEN_MASK,
+             "Too many screens to keep the one shown at sleep in GPREGRET2");
 
 static int mpu6050_write(uint8_t reg, uint8_t value)
 {
@@ -184,17 +198,19 @@ static int mpu6050_disarm_wake_on_motion(void)
 
 static int enable_motion_wake(void)
 {
-    int err;
-
-    TRY(mpu6050_arm_wake_on_motion());
+    int err = mpu6050_arm_wake_on_motion();
 
     // Only SENSE is set, with no interrupt: SENSE alone wakes the nRF52 from
     // System OFF, while a Zephyr level interrupt keeps firing for as long as
     // the latched INT is high, starving the sleep path. If INT is already high
     // at power-off, the nRF52 just wakes straight away.
+    //
+    // Set even if arming failed, so the pin still wakes the remote when driven
+    // high by hand, or with the MPU6050 missing. The pull-down holds it low
+    // otherwise. It goes after arming, which ends with INT released.
     nrf_gpio_cfg_sense_input(IMU_INT_PIN, NRF_GPIO_PIN_PULLDOWN, NRF_GPIO_PIN_SENSE_HIGH);
 
-    return 0;
+    return err;
 }
 
 // Display Off, then Sleep In, so the panel is idle when VCC goes. ZMK then
@@ -245,8 +261,25 @@ static int release_pins(void)
     return 0;
 }
 
-// This only reads the active screen pointer, so it does not need the LVGL
-// thread.
+// The screen's page: the status bar and tab bar around it are not scrollable.
+// NULL for a screen without a scrollable page.
+static lv_obj_t *screen_page(lv_obj_t *screen)
+{
+    uint32_t count = lv_obj_get_child_count(screen);
+
+    for (uint32_t i = 0; i < count; i++) {
+        lv_obj_t *child = lv_obj_get_child(screen, i);
+
+        if (lv_obj_has_flag(child, LV_OBJ_FLAG_SCROLLABLE)) {
+            return child;
+        }
+    }
+
+    return NULL;
+}
+
+// This only reads the active screen and its page's scroll offset, so it does
+// not need the LVGL thread.
 static void save_screen(void)
 {
     lv_obj_t *active = lv_screen_active();
@@ -259,23 +292,60 @@ static void save_screen(void)
         }
     }
 
+    lv_obj_t *page = value != 0 ? screen_page(active) : NULL;
+    if (page != NULL) {
+        int32_t scroll_y = CLAMP(lv_obj_get_scroll_y(page), 0, INT16_MAX);
+        uint32_t steps = MIN((scroll_y + SCROLL_STEP / 2) / SCROLL_STEP, SCROLL_MAX_STEPS);
+
+        value |= steps << SCREEN_BITS;
+    }
+
     nrf_power_gpregret_set(NRF_POWER, SCREEN_GPREGRET, value);
 }
 
-// Static threads start after the APPLICATION level, so this load is queued
-// before the LVGL thread draws its first frame, and the default screen is
-// never drawn first.
-static void restore_screen(void)
+static uint8_t restored_value;
+static struct dt_lvgl_async restore_async;
+
+// On the LVGL thread, so the screen can be loaded and scrolled in one go,
+// before the frame that shows it.
+static void restore_screen_on_lvgl_thread(void *user_data)
 {
-    uint32_t value = nrf_power_gpregret_get(NRF_POWER, SCREEN_GPREGRET);
+    ARG_UNUSED(user_data);
 
-    nrf_power_gpregret_set(NRF_POWER, SCREEN_GPREGRET, 0);
+    size_t index = (restored_value & SCREEN_MASK) - 1;
+    int32_t scroll_y = (restored_value >> SCREEN_BITS) * SCROLL_STEP;
 
-    if (value == 0 || value > ARRAY_SIZE(ui_screens)) {
+    int err = dt_lvgl_screen_load_by_id(ui, ui_screen_ids[index]);
+    if (err < 0) {
+        LOG_WRN("Could not restore the screen shown at sleep (%d)", err);
         return;
     }
 
-    int err = dt_lvgl_screen_load_by_id_async(ui, ui_screen_ids[value - 1]);
+    lv_obj_t *page = screen_page(dt_lvgl_screen_get(ui_screens[index]));
+    if (page != NULL && scroll_y > 0) {
+        // This lays the page out first, and clamps to the end of the page.
+        lv_obj_scroll_to_y(page, scroll_y, LV_ANIM_OFF);
+    }
+}
+
+// Static threads start after the APPLICATION level, so this is queued before
+// the LVGL thread draws its first frame, and neither the default screen nor
+// the top of the page is drawn first.
+static void restore_screen(void)
+{
+    uint32_t value = nrf_power_gpregret_get(NRF_POWER, SCREEN_GPREGRET);
+    uint32_t screen = value & SCREEN_MASK;
+
+    nrf_power_gpregret_set(NRF_POWER, SCREEN_GPREGRET, 0);
+
+    if (screen == 0 || screen > ARRAY_SIZE(ui_screens)) {
+        return;
+    }
+
+    restored_value = value;
+    dt_lvgl_async_init(&restore_async, restore_screen_on_lvgl_thread, NULL);
+
+    int err = dt_lvgl_async_submit(&restore_async);
     if (err < 0) {
         LOG_WRN("Could not restore the screen shown at sleep (%d)", err);
     }
@@ -289,7 +359,7 @@ static void prepare_for_sleep(void)
     // The I2C pull-ups are on VCC, so this goes before the pins are released.
     int err = enable_motion_wake();
     if (err < 0) {
-        LOG_ERR("Could not arm wake-on-motion (%d); only a key or reset will wake the remote",
+        LOG_ERR("Could not arm MPU6050 wake-on-motion (%d); the INT pin is still a wake source",
                 err);
     }
 
