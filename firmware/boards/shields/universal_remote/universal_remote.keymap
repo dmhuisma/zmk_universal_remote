@@ -4,6 +4,8 @@
 #include <dt-bindings/zmk/outputs.h>
 #include <dt-bindings/zmk/bt.h>
 
+#include "universal_remote_layers.h"
+
 // placeholders
 #define IR_TV_CUSTOMER 0x00FF
 #define IR_TV_POWER 0x00FF
@@ -36,6 +38,18 @@
                 &kp ESCAPE                      &ir_vol_up
                 &kp LG(M)                       &ir_vol_dn
                 &kp LMETA                       &ir_power
+            >;
+        };
+
+        // On while the Touchpad screen is shown
+        mouse_layer {
+            bindings = <
+                                &trans
+                &trans          &mkp LCLK       &trans
+                                &trans
+                &trans                          &trans
+                &trans                          &trans
+                &mkp RCLK                       &trans
             >;
         };
     };

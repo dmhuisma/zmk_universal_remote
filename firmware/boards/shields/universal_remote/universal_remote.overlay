@@ -4,6 +4,7 @@
 #include <input/processors.dtsi>
 #include "universal_remote.dtsi"
 #include "universal_remote_ui.dtsi"
+#include "universal_remote_layers.h"
 
 / {
     chosen {
@@ -61,6 +62,8 @@
         touch-device = <&cst816>;
         screen = <&touchpad_screen>;
         area = <&touchpad_area>;
+        // The D-pad's centre clicks the left button on this screen.
+        layer = <LAYER_MOUSE>;
     };
 
     touchpad_listener {

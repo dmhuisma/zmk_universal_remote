@@ -25,6 +25,12 @@ properties:
     required: true
     description: The dt-lvgl widget a touch has to start on.
 
+  layer:
+    type: int
+    description: |
+      A keymap layer that is on while the screen is shown and off otherwise,
+      for keys that act differently there.
+
   tap-timeout-ms:
     type: int
     default: 180

@@ -900,7 +900,9 @@
         // Moves the host's mouse pointer. The page fills the screen, with no
         // status bar or tab bar, so the pad is as large as it can be.
         // src/touchpad.c reads touches that start on touchpad_area while
-        // this screen is shown; LVGL itself does nothing with them.
+        // this screen is shown; LVGL itself does nothing with them. While it
+        // is shown, the keymap's mouse layer is on too, so the D-pad's centre
+        // clicks the left button instead of pressing Enter.
         //
         // Above the pad, Back shares the row with Motion, which also moves
         // the pointer as the remote turns (src/motion_pointer.c). Motion

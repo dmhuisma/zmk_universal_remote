@@ -12,6 +12,8 @@
 
 #include <dt_lvgl.h>
 
+#include <zmk/keymap.h>
+
 LOG_MODULE_REGISTER(touchpad, CONFIG_ZMK_LOG_LEVEL);
 
 // src/motion_pointer.c, which also moves the pointer as the remote turns,
@@ -42,6 +44,10 @@ BUILD_ASSERT(DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT) == 1, "Only one touchpad is 
 //   - Lifting within tap-timeout-ms, without moving, clicks the left button.
 //   - Holding still for long-press-ms clicks the right button, and the rest
 //     of the touch is ignored.
+//
+// While the screen is shown, the keymap layer in the node's layer property
+// is on too, so keys can act differently there: the D-pad's centre clicks the
+// left button instead of pressing Enter.
 
 #define TOUCHPAD_NODE DT_DRV_INST(0)
 
@@ -125,6 +131,38 @@ static void long_press_handler(struct k_work *work)
 }
 
 static K_WORK_DELAYABLE_DEFINE(long_press_work, long_press_handler);
+
+#if DT_NODE_HAS_PROP(TOUCHPAD_NODE, layer)
+
+#define TOUCHPAD_LAYER DT_PROP(TOUCHPAD_NODE, layer)
+
+// On the system work queue, where ZMK handles key presses, as its layer state
+// has no lock of its own. A key keeps the layers it was pressed with until it
+// is released, so leaving the screen mid-press still releases the click.
+static void layer_handler(struct k_work *work)
+{
+    ARG_UNUSED(work);
+
+    k_spinlock_key_t key = k_spin_lock(&lock);
+    bool on = shown;
+    k_spin_unlock(&lock, key);
+
+    int err = on ? zmk_keymap_layer_activate(TOUCHPAD_LAYER, false)
+                 : zmk_keymap_layer_deactivate(TOUCHPAD_LAYER, false);
+    if (err < 0) {
+        LOG_ERR("Failed to turn layer %d %s: %d", TOUCHPAD_LAYER, on ? "on" : "off", err);
+    }
+}
+
+static K_WORK_DEFINE(layer_work, layer_handler);
+
+static void update_layer(void) { k_work_submit(&layer_work); }
+
+#else
+
+static inline void update_layer(void) {}
+
+#endif
 
 static void touch_down_or_move(int32_t x, int32_t y)
 {
@@ -262,6 +300,7 @@ static void set_shown(bool show)
         k_work_cancel_delayable(&long_press_work);
     }
 
+    update_layer();
     motion_pointer_set_shown(show);
 }
 
