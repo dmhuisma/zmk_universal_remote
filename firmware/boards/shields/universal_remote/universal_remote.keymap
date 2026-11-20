@@ -6,6 +6,25 @@
 #include <dt-bindings/zmk/bt.h>
 
 / {
+    behaviors {
+        // Sent to Home Assistant over BTHome, as touchscreen buttons are (see
+        // bthome-buttons in universal_remote_ui.dtsi for the numbers in use,
+        // and home_assistant/bthome_buttons.yaml).
+        bthome_jellyfin: bthome_jellyfin {
+            compatible = "zmk,behavior-bthome-button";
+            #binding-cells = <0>;
+            display-name = "Jellyfin";
+            button-number = <20>;
+        };
+
+        bthome_youtube: bthome_youtube {
+            compatible = "zmk,behavior-bthome-button";
+            #binding-cells = <0>;
+            display-name = "YouTube";
+            button-number = <21>;
+        };
+    };
+
     keymap {
         compatible = "zmk,keymap";
 
@@ -16,7 +35,7 @@
                                 &kp DOWN
                 &kp ESCAPE                      &kp C_VOL_UP
                 &kp LMETA                       &kp C_VOL_DN
-                &none                           &none
+                &bthome_youtube                 &bthome_jellyfin
             >;
         };
     };

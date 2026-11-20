@@ -980,8 +980,9 @@
             <&light_living_room_left &light_living_room_right
              &light_kitchen_overhead &light_kitchen_table &light_hallway
              &scene_tv &scene_on &scene_off>,
-            // TV, 20-39. 20 and 21 were Jellyfin and YouTube, now on hardware
-            // keys, and are left unused so the other numbers still match.
+            // TV, 20-39. 20 and 21 are Jellyfin and YouTube, which are
+            // hardware keys: &bthome_jellyfin and &bthome_youtube in
+            // universal_remote.keymap send them.
             <&tv_input &tv_mute
              &tv_rewind &tv_play_pause &tv_fast_forward>,
             // Climate, 40-49

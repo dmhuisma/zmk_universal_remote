@@ -1,4 +1,4 @@
-# Every touchscreen button the remote sends to Home Assistant, and the
+# Every touchscreen button and key the remote sends to Home Assistant, and the
 # bthome_ble_event each press fires. A press is a BTHome dimmer event with
 # the button number as its step count: a tap rotates right, a long press
 # rotates left.
@@ -14,8 +14,9 @@
 #       steps: 1
 #
 # The buttons and numbers come from bthome-buttons and bthome-button-numbers
-# in boards/shields/universal_remote/universal_remote_ui.dtsi; keep the two
-# in step. tools/gen_hass_automation.py checks them against each other and
+# in boards/shields/universal_remote/universal_remote_ui.dtsi, and the keys
+# from the zmk,behavior-bthome-button nodes in universal_remote.keymap; keep
+# them in step. tools/gen_hass_automation.py checks them against each other and
 # turns this file into an automation to start from.
 #
 # Navigation buttons (tabs, More rows, Back) send nothing and are not listed.
@@ -88,7 +89,25 @@ buttons:
       tap: rotate_right
       long_press: rotate_left
 
-  # TV
+  # TV. Jellyfin and YouTube are the two hardware keys at the bottom of the
+  # remote, bound to &bthome_jellyfin and &bthome_youtube in
+  # universal_remote.keymap.
+  - id: bthome_jellyfin
+    screen: Keys
+    label: "Jellyfin"
+    target: "app to launch"
+    steps: 20
+    events:
+      tap: rotate_right
+      long_press: rotate_left
+  - id: bthome_youtube
+    screen: Keys
+    label: "YouTube"
+    target: "app to launch"
+    steps: 21
+    events:
+      tap: rotate_right
+      long_press: rotate_left
   - id: tv_input
     screen: TV
     label: "Input"

@@ -14,7 +14,8 @@ matches the event payload's button number and press type, and only writes to
 the system log. Replace those actions with real ones.
 
 The buttons file is checked against bthome-buttons and bthome-button-numbers
-in the UI devicetree first, so it cannot drift from what the remote sends.
+in the UI devicetree, and the zmk,behavior-bthome-button keys in the keymap,
+first, so it cannot drift from what the remote sends.
 """
 
 import argparse
@@ -25,10 +26,9 @@ from pathlib import Path
 
 import yaml
 
-UI_DTSI = (
-    Path(__file__).resolve().parent.parent
-    / "boards/shields/universal_remote/universal_remote_ui.dtsi"
-)
+SHIELD = Path(__file__).resolve().parent.parent / "boards/shields/universal_remote"
+UI_DTSI = SHIELD / "universal_remote_ui.dtsi"
+KEYMAP = SHIELD / "universal_remote.keymap"
 
 PRESSES = {"tap": "tapped", "long_press": "long pressed"}
 DIMMER_EVENTS = {"rotate_right", "rotate_left"}
@@ -42,6 +42,21 @@ def dtsi_property(text: str, name: str) -> str:
     return re.sub(r"//[^\n]*", "", match.group(1))
 
 
+def keymap_buttons() -> dict[str, int]:
+    """The button number of each zmk,behavior-bthome-button key, by node label."""
+    text = re.sub(r"//[^\n]*", "", KEYMAP.read_text())
+    keys = {}
+    for match in re.finditer(r"(\w+)\s*:\s*[\w,@-]+\s*\{([^{}]*)\}", text):
+        body = match.group(2)
+        if not re.search(r'compatible\s*=\s*"zmk,behavior-bthome-button"', body):
+            continue
+        number = re.search(r"button-number\s*=\s*<\s*(0x[0-9a-fA-F]+|\d+)\s*>", body)
+        if number is None:
+            sys.exit(f"{KEYMAP}: {match.group(1)} has no button-number")
+        keys[match.group(1)] = int(number.group(1), 0)
+    return keys
+
+
 def check_against_dtsi(buttons: list[dict]) -> None:
     text = UI_DTSI.read_text()
     widgets = re.findall(r"&(\w+)", dtsi_property(text, "bthome-buttons"))
@@ -51,6 +66,11 @@ def check_against_dtsi(buttons: list[dict]) -> None:
         sys.exit(f"{UI_DTSI}: bthome-buttons and bthome-button-numbers differ in length")
 
     expected = dict(zip(widgets, numbers))
+    for id_, number in keymap_buttons().items():
+        if id_ in expected:
+            sys.exit(f"{KEYMAP}: {id_} is also in bthome-buttons")
+        expected[id_] = number
+
     listed = {button["id"]: button["steps"] for button in buttons}
     if listed != expected:
         for id_ in sorted(expected.keys() - listed.keys()):
@@ -90,7 +110,7 @@ def automation(buttons: list[dict], address: str, source: str) -> str:
         "# Placeholder entries use warning level so they are visible in Settings > System > Logs.",
         "# The branch conditions use the BTHome event payload, not Home Assistant trigger IDs.",
         "alias: Universal remote",
-        "description: Touchscreen buttons on the living room universal remote, sent over BTHome.",
+        "description: Touchscreen buttons and keys on the living room universal remote, sent over BTHome.",
         # Presses can arrive faster than slower actions finish.
         "mode: queued",
         "max: 10",

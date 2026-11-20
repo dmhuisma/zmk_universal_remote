@@ -1,0 +1,16 @@
+description: |
+  A key that sends a press to Home Assistant over BTHome (src/bthome.c), the
+  same way as a touchscreen button: a tap and a long press are told apart, and
+  button-number is the event's step count.
+
+compatible: "zmk,behavior-bthome-button"
+
+include: zero_param.yaml
+
+properties:
+  button-number:
+    type: int
+    required: true
+    description: |
+      The number Home Assistant sees, 1 to 255. It must not be one that
+      bthome-buttons in universal_remote_ui.dtsi already uses.

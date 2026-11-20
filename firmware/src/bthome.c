@@ -18,9 +18,12 @@
 
 #include <dt_lvgl.h>
 
+#include "bthome.h"
+
 LOG_MODULE_REGISTER(bthome, CONFIG_ZMK_LOG_LEVEL);
 
-// Sends the UI buttons to Home Assistant as BTHome v2 broadcasts
+// Sends the UI buttons, and keys bound to &bthome_button
+// (src/behavior_bthome_button.c), to Home Assistant as BTHome v2 broadcasts
 // (https://bthome.io/format/). BTHome tells buttons apart only by their
 // position in the packet, and a button object per UI button does not fit in
 // an advertisement, so each press is one dimmer event with the button number
@@ -244,6 +247,11 @@ static void bthome_queue_press(uint8_t direction, uint8_t button)
     }
 
     k_work_reschedule(&bthome_send_work, K_NO_WAIT);
+}
+
+void bthome_send_button(uint8_t button, bool long_press)
+{
+    bthome_queue_press(long_press ? BTHOME_DIMMER_ROTATE_LEFT : BTHOME_DIMMER_ROTATE_RIGHT, button);
 }
 
 static uint8_t button_number(const struct device *widget)
