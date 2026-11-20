@@ -89,19 +89,17 @@ buttons:
       tap: rotate_right
       long_press: rotate_left
 
-  # TV. Jellyfin and YouTube are the two hardware keys at the bottom of the
-  # remote, bound to &bthome_jellyfin and &bthome_youtube in
-  # universal_remote.keymap.
-  - id: bthome_jellyfin
-    screen: Keys
+  # TV
+  - id: tv_jellyfin
+    screen: TV
     label: "Jellyfin"
     target: "app to launch"
     steps: 20
     events:
       tap: rotate_right
       long_press: rotate_left
-  - id: bthome_youtube
-    screen: Keys
+  - id: tv_youtube
+    screen: TV
     label: "YouTube"
     target: "app to launch"
     steps: 21

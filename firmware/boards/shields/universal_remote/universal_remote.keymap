@@ -1,28 +1,28 @@
-
 #include <behaviors.dtsi>
 #include <dt-bindings/zmk/keys.h>
 #include <dt-bindings/zmk/pointing.h>
 #include <dt-bindings/zmk/outputs.h>
 #include <dt-bindings/zmk/bt.h>
 
-/ {
-    behaviors {
-        // Sent to Home Assistant over BTHome, as touchscreen buttons are (see
-        // bthome-buttons in universal_remote_ui.dtsi for the numbers in use,
-        // and home_assistant/bthome_buttons.yaml).
-        bthome_jellyfin: bthome_jellyfin {
-            compatible = "zmk,behavior-bthome-button";
-            #binding-cells = <0>;
-            display-name = "Jellyfin";
-            button-number = <20>;
-        };
+// placeholders
+#define IR_TV_CUSTOMER 0x00FF
+#define IR_TV_POWER 0x00FF
+#define IR_TV_VOL_UP 0x01FE
+#define IR_TV_VOL_DN 0x02FD
 
-        bthome_youtube: bthome_youtube {
-            compatible = "zmk,behavior-bthome-button";
-            #binding-cells = <0>;
-            display-name = "YouTube";
-            button-number = <21>;
-        };
+#define IR_KEY(key, label, customer, data)                                     \
+    ZMK_MACRO(key,                                                             \
+        display-name = label;                                                  \
+        wait-ms = <0>;                                                         \
+        tap-ms = <0>;                                                          \
+        bindings = <&ir_tx customer data>;                                     \
+    )
+
+/ {
+    macros {
+        IR_KEY(ir_power, "IR Power", IR_TV_CUSTOMER, IR_TV_POWER)
+        IR_KEY(ir_vol_up, "IR Vol Up", IR_TV_CUSTOMER, IR_TV_VOL_UP)
+        IR_KEY(ir_vol_dn, "IR Vol Down", IR_TV_CUSTOMER, IR_TV_VOL_DN)
     };
 
     keymap {
@@ -33,9 +33,9 @@
                                 &kp UP
                 &kp LEFT        &kp ENTER       &kp RIGHT
                                 &kp DOWN
-                &kp ESCAPE                      &kp C_VOL_UP
-                &kp LMETA                       &kp C_VOL_DN
-                &bthome_youtube                 &bthome_jellyfin
+                &kp ESCAPE                      &ir_vol_up
+                &kp LG(M)                       &ir_vol_dn
+                &kp LMETA                       &ir_power
             >;
         };
     };

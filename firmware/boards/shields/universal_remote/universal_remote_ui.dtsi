@@ -660,6 +660,33 @@
         text-color-hex = <UI_COLOR_ON_GREEN_CONTAINER>;
     };
 
+    // The app tiles on the TV screen, in each app's brand colours.
+    ui_tile_jellyfin_style: ui_tile_jellyfin_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        radius = <UI_RADIUS>;
+        pad-top = <4>;
+        pad-bottom = <4>;
+        pad-left = <2>;
+        pad-right = <2>;
+        bg-color-hex = <0xaa5cc3>;
+        bg-grad-color-hex = <0x00a4dc>;
+        bg-grad-dir = "horizontal";
+        text-color-hex = <0xffffff>;
+    };
+
+    ui_tile_youtube_style: ui_tile_youtube_style {
+        compatible = "dt-lvgl-style";
+        #dt-lvgl-style-cells = <2>;
+        radius = <UI_RADIUS>;
+        pad-top = <4>;
+        pad-bottom = <4>;
+        pad-left = <2>;
+        pad-right = <2>;
+        bg-color-hex = <0xcc0000>;
+        text-color-hex = <0xffffff>;
+    };
+
     // The touchpad, filled so its edges are visible. It has no pressed look:
     // the host's pointer is the feedback.
     ui_touchpad_style: ui_touchpad_style {
@@ -853,7 +880,8 @@
 
             tv_page {
                 UI_PAGE_PROPS(UI_SIX_COLUMNS,
-                              <DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1)>)
+                              <DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1) DT_LVGL_GRID_FR(1)
+                               DT_LVGL_GRID_FR(1)>)
                 not-scrollable;
 
                 UI_NAV_TILE(tv_mouse, 0, 0, 6, UI_ICON_MOUSE, ui_icon_style, "Mouse", show_touchpad)
@@ -862,6 +890,8 @@
                 UI_ICON_TILE(tv_rewind, 0, 2, 2, UI_ICON_REWIND)
                 UI_ICON_TILE(tv_play_pause, 2, 2, 2, UI_ICON_PLAY_PAUSE)
                 UI_ICON_TILE(tv_fast_forward, 4, 2, 2, UI_ICON_FAST_FORWARD)
+                UI_TILE(tv_jellyfin, 0, 3, 3, UI_ICON_PLAY_BOX_MULTIPLE, ui_icon_style, "Jellyfin", ui_tile_jellyfin_style)
+                UI_TILE(tv_youtube, 3, 3, 3, UI_ICON_YOUTUBE, ui_icon_style, "YouTube", ui_tile_youtube_style)
             };
 
             UI_TAB_BAR(tv, off, on, off)
@@ -1056,10 +1086,9 @@
             <&light_living_room_left &light_living_room_right
              &light_kitchen_overhead &light_kitchen_table &light_hallway
              &scene_tv &scene_on &scene_off>,
-            // TV, 20-39. 20 and 21 are Jellyfin and YouTube, which are
-            // hardware keys: &bthome_jellyfin and &bthome_youtube in
-            // universal_remote.keymap send them.
-            <&tv_input &tv_mute
+            // TV, 20-39. Jellyfin and YouTube were hardware keys and kept
+            // their numbers when they moved here.
+            <&tv_jellyfin &tv_youtube &tv_input &tv_mute
              &tv_rewind &tv_play_pause &tv_fast_forward>,
             // Climate, 40-49
             <&climate_cooler &climate_warmer
@@ -1074,7 +1103,7 @@
              &chester_living_room &chester_front_door>;
         bthome-button-numbers =
             <1 2 3 4 5 10 11 13>,
-            <22 23 24 25 26>,
+            <20 21 22 23 24 25 26>,
             <40 41 42 43 44 45>,
             <50 51 52 53 54 55 56>,
             <70 71 72 73 74 75 76>;

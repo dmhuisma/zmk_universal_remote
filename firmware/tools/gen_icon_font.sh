@@ -40,6 +40,8 @@ ICONS=(
     rewind
     play-pause
     fast-forward
+    play-box-multiple
+    youtube
     # More
     thermostat
     robot-vacuum
