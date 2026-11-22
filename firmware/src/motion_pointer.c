@@ -30,7 +30,7 @@ LOG_MODULE_REGISTER(motion_pointer, CONFIG_ZMK_LOG_LEVEL);
 
 BUILD_ASSERT(DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT) == 1, "Only one motion pointer is supported");
 
-// While the Touchpad screen is shown with Motion on, the MPU6050's gyroscope
+// While the Touchpad screen is shown with Tilt on, the MPU6050's gyroscope
 // is read every sample-period-ms and its turn rates move the pointer: yaw
 // across and pitch up and down. Otherwise the MPU6050 sleeps, which saves the
 // few milliamps its gyroscope draws.

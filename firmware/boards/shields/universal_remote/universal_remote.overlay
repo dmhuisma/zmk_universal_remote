@@ -69,12 +69,12 @@
     touchpad_listener {
         compatible = "zmk,input-listener";
         device = <&touchpad>;
-        // The pad is about 158 px wide, so it moves the pointer 3 host pixels
+        // The pad is about 154 px wide, so it moves the pointer 3 host pixels
         // per panel pixel.
         input-processors = <&zip_xy_scaler 3 1>;
     };
 
-    // Motion on the Touchpad screen: turning the remote moves the pointer
+    // Tilt on the Touchpad screen: turning the remote moves the pointer
     // too (src/motion_pointer.c). Tune the feel here. If turning left and
     // right moves the pointer the wrong way set invert-x; if tilting up and
     // down does, set invert-y; if tilting moves it sideways, try y-axis "x".
@@ -83,8 +83,8 @@
         i2c-bus = <&i2c0>;
         toggle = <&touchpad_motion_toggle>;
         toggle-icon = <&touchpad_motion_icon>;
-        icon-on = UI_ICON_CHECKBOX_MARKED;
-        icon-off = UI_ICON_CHECKBOX_BLANK_OUTLINE;
+        icon-on = UI_ICON_TOGGLE_SWITCH;
+        icon-off = UI_ICON_TOGGLE_SWITCH_OFF_OUTLINE;
         // Yaw is about the board's normal; the GY-521 lies flat on the back.
         x-axis = "z";
         y-axis = "y";

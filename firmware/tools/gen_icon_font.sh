@@ -21,18 +21,18 @@ SIZE=28
 # MDI icon names, as listed on https://pictogrammers.com/library/mdi/.
 ICONS=(
     # Tab bar
+    home
     lightbulb-group
     television
-    dots-horizontal-circle-outline
+    dots-horizontal-circle
+    # Home: the scenes
+    television-play
+    lightbulb-group-off
     # Lights
     floor-lamp
     light-recessed
     ceiling-light
     lightbulb
-    movie-open
-    brightness-7
-    weather-night
-    lightbulb-off
     # TV
     mouse
     video-input-hdmi
@@ -42,11 +42,11 @@ ICONS=(
     fast-forward
     play-box-multiple
     youtube
-    # More
+    # More, and the arrows on rows that open another screen
     thermostat
     robot-vacuum
-    chevron-left
     chevron-right
+    arrow-left
     # Climate
     minus
     plus
@@ -57,12 +57,10 @@ ICONS=(
     # Vacuums
     pause
     home-import-outline
-    map-marker
-    # Screen brightness, on the More screen
-    brightness-6
-    # The Touchpad screen's motion toggle, off and on
-    checkbox-blank-outline
-    checkbox-marked
+    # The Touchpad screen: its hint, and the Tilt toggle, off and on
+    gesture-tap
+    toggle-switch-off-outline
+    toggle-switch
 )
 
 root=$(cd "$(dirname "$0")/.." && pwd)

@@ -30,6 +30,7 @@ static const uint8_t step_duty[] = {1,  2,  3,  4,  5,  6,  7,  10, 14, 18,
 static const struct device *const down_key = DEVICE_DT_GET(DT_NODELABEL(brightness_down));
 static const struct device *const up_key = DEVICE_DT_GET(DT_NODELABEL(brightness_up));
 static const struct device *const value_label = DEVICE_DT_GET(DT_NODELABEL(brightness_value));
+static const struct device *const level_bar = DEVICE_DT_GET(DT_NODELABEL(brightness_bar));
 
 // The step whose duty is nearest the backlight's. The backlight need not be
 // on a step: CONFIG_ZMK_BACKLIGHT_BRT_START, for one, can be any duty.
@@ -47,9 +48,14 @@ static size_t current_step(void)
     return nearest;
 }
 
+static unsigned int step_percent(size_t step)
+{
+    return (step + 1) * BRIGHTNESS_STEP_PERCENT;
+}
+
 static void format_step(char *text, size_t len, size_t step)
 {
-    snprintf(text, len, "%u%%", (unsigned int)((step + 1) * BRIGHTNESS_STEP_PERCENT));
+    snprintf(text, len, "%u%%", step_percent(step));
 }
 
 // Runs on the dt-lvgl thread.
@@ -83,6 +89,11 @@ static void brightness_ui_event(const struct dt_lvgl_event *event, void *user_da
     if (err < 0) {
         LOG_WRN("Could not update the brightness label: %d", err);
     }
+
+    err = dt_lvgl_widget_set_value(level_bar, step_percent(step), true);
+    if (err < 0) {
+        LOG_WRN("Could not update the brightness bar: %d", err);
+    }
 }
 
 // ZMK loads the saved backlight level in main(), after SYS_INIT, and settings
@@ -91,10 +102,17 @@ static int brightness_settings_commit(void)
 {
     char text[8];
 
-    format_step(text, sizeof(text), current_step());
+    size_t step = current_step();
+
+    format_step(text, sizeof(text), step);
     int err = dt_lvgl_widget_set_text_async(value_label, text);
     if (err < 0) {
         LOG_WRN("Could not update the brightness label: %d", err);
+    }
+
+    err = dt_lvgl_widget_set_value_async(level_bar, step_percent(step), false);
+    if (err < 0) {
+        LOG_WRN("Could not update the brightness bar: %d", err);
     }
 
     return 0;

@@ -69,17 +69,19 @@ BUILD_ASSERT(I2C_RECOVER_INIT_PRIORITY < CONFIG_INPUT_INIT_PRIORITY,
 // GPREGRET2, which nothing else uses. Like GPREGRET it is kept through System
 // OFF and cleared at power-on, so it carries the screen shown at sleep, and how
 // far its page was scrolled, over to the wake. It is only 8 bits wide:
-//   bits 0-2  the screen's index plus one; 0 leaves the default screen
-//   bits 3-7  the page's scroll offset in SCROLL_STEP pixel steps
+//   bits 0-3  the screen's index plus one; 0 leaves the default screen
+//   bits 4-7  the page's scroll offset in SCROLL_STEP pixel steps
+// No page scrolls at present, so the offset is always 0; it is kept for a
+// page that grows past the screen.
 #define SCREEN_GPREGRET 1
-#define SCREEN_BITS 3
+#define SCREEN_BITS 4
 #define SCREEN_MASK BIT_MASK(SCREEN_BITS)
 #define SCROLL_MAX_STEPS BIT_MASK(8 - SCREEN_BITS)
 
 // The offset is rounded to the nearest step, so a page comes back within half
 // a step of where it was. Top and bottom come back exactly: LVGL clamps a
 // rounded-up offset to the end of the page. Offsets past SCROLL_MAX_STEPS
-// steps (248 px) come back at that offset instead.
+// steps (120 px) come back at that offset instead.
 #define SCROLL_STEP 8
 
 #define DISPLAY_DBI DT_PARENT(DT_CHOSEN(zephyr_display))
