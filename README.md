@@ -24,6 +24,12 @@ This repository contains the PCB, the 3D-printable case and the [ZMK](https://zm
 
 > **Note:** The touchscreen UI and its Home Assistant controls (scenes, lights, climate, vacuums) are built for my own home. If you build this remote, expect to customize the screens and automations for your setup. The physical buttons are general-purpose.
 
+## Touchscreen interface
+
+| Home: scenes | TV | TV › Mouse: touchpad |
+|:---:|:---:|:---:|
+| <img src="docs/images/ui_home.png" width="200" alt="Home screen with Watch TV, Lights on and Lights off scenes"> | <img src="docs/images/ui_tv.png" width="200" alt="TV screen with Mouse, Input, Mute, media keys, Jellyfin and YouTube"> | <img src="docs/images/ui_touchpad.png" width="200" alt="Mouse screen with a touchpad area, Back and a Tilt toggle"> |
+
 ## Repository layout
 
 | Path | Contents |
