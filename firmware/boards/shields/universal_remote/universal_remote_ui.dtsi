@@ -242,8 +242,8 @@
         UI_TAB(name, more, 3, UI_ICON_DOTS_HORIZONTAL_CIRCLE, "More", show_more, more_state) \
     };
 
-// A pill in the bottom bar: an icon and a label, left-aligned. Back, and the
-// Touchpad screen's Tilt toggle.
+// A pill in the bottom bar: an icon and a label, left-aligned. The Back key
+// of UI_BACK_BAR.
 #define UI_BAR_KEY_CONTENT(name, icon, key_text, text_inset)                   \
     name##_icon: name##_icon {                                                 \
         compatible = "dt-lvgl-label";                                          \
@@ -1239,10 +1239,27 @@
             };
 
             touchpad_bar {
-                // Back takes the wider share, for its longer label.
-                UI_NAVBAR_PROPS(<DT_LVGL_GRID_FR(9) DT_LVGL_GRID_FR(8)>, ui_key_bar_style)
+                // Back is the arrow alone, in a circle: 45 px is
+                // UI_NAVBAR_HEIGHT less ui_navbar_style's padding. That
+                // leaves the rest of the bar to Tilt, so both keys have
+                // room around their content.
+                UI_NAVBAR_PROPS(<45 UI_GRID_FR>, ui_key_bar_style)
 
-                UI_BACK_KEY(touchpad, 0, show_tv)
+                touchpad_back {
+                    compatible = "dt-lvgl-button";
+                    grid-cell = <0 0>;
+                    grid-align-self-x = "stretch";
+                    grid-align-self-y = "stretch";
+                    events = <&show_tv DT_LVGL_EVENT_CLICKED>;
+                    styles = UI_STYLE(ui_bar_key_style);
+
+                    touchpad_back_icon {
+                        compatible = "dt-lvgl-label";
+                        text = UI_ICON_ARROW_LEFT;
+                        align = "center";
+                        styles = UI_STYLE(ui_icon_style);
+                    };
+                };
 
                 // Checked while tilt is on. src/motion_pointer.c sets the
                 // saved state at boot and swaps the icon to match.
@@ -1256,7 +1273,24 @@
                     styles = <&ui_bar_key_style DT_LVGL_PART_MAIN DT_LVGL_STATE_DEFAULT>,
                              <&ui_toggle_checked_style DT_LVGL_PART_MAIN DT_LVGL_STATE_CHECKED>;
 
-                    UI_BAR_KEY_CONTENT(touchpad_motion, UI_ICON_TOGGLE_SWITCH_OFF_OUTLINE, "Tilt", 33)
+                    // The icon and label are centred as a pair, with 6 px
+                    // between them. The offsets assume "Tilt" is 25 px wide
+                    // in ui_large_font.
+                    touchpad_motion_icon: touchpad_motion_icon {
+                        compatible = "dt-lvgl-label";
+                        text = UI_ICON_TOGGLE_SWITCH_OFF_OUTLINE;
+                        align = "center";
+                        align-x = <(-15)>;
+                        styles = UI_STYLE(ui_icon_style);
+                    };
+
+                    touchpad_motion_label {
+                        compatible = "dt-lvgl-label";
+                        text = "Tilt";
+                        align = "center";
+                        align-x = <16>;
+                        styles = UI_STYLE(ui_large_text_style);
+                    };
                 };
             };
         };
