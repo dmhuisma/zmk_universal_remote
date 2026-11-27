@@ -4,7 +4,7 @@ A simple remote for a living-room HTPC. Off-the-shelf remotes tend to feel cheap
 
 This repository contains the PCB, the 3D-printable case and the [ZMK](https://zmk.dev/) firmware.
 
-> **Note:** This remote needs a second revision to solve connectivity issues. The antenna is placed under where you grip with your hand, which blocks the signal.
+> **Note:** This remote needs a second revision to solve connectivity issues. The antenna is placed under where you grip with your hand, which blocks the signal. The rev 2 design is currently in progress, so different parts of the design (board, firmware, case) may not match up in current state.
 
 ![Universal remote case render](docs/images/remote.png)
 
@@ -19,9 +19,9 @@ This repository contains the PCB, the 3D-printable case and the [ZMK](https://zm
 - **Infrared TX and RX:** two IR LEDs (wide and narrow beam) control TVs and other devices that aren't part of the smart home. A TSOP38238 receiver can learn codes from existing remotes.
 - **Wake on motion:** an MPU6050 accelerometer wakes the remote from deep sleep when you pick it up, so you don't need to press a button first.
 - **Display backlight:** adjustable brightness, and the backlight turns off when the remote is idle.
-- **Rechargeable battery:** the case has room for a flat LiPo of about 1000 mAh. It charges over USB-C.
-- **Sleep current:** _TBD_, planned for 6+ Months of use between charges.
-- **Active current:** _TBD_
+- **Rechargeable battery:** the case has room for a flat LiPo of about 1000 mAh (not verified yet). It charges over USB-C.
+- **Sleep current:** 100 uA, with accelerometer motion wake enabled.
+- **Active current:** >= 20 mA, depending on screen brightness
 - **nice!nano (nRF52840) controller:** standard ZMK hardware with Bluetooth LE.
 
 > **Note:** The touchscreen UI and its Home Assistant controls (scenes, lights, climate, vacuums) are built for my own home. If you build this remote, expect to customize the screens and automations for your setup. The physical buttons are general-purpose.
