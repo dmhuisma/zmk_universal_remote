@@ -5,6 +5,8 @@
 #include "universal_remote.dtsi"
 #include "universal_remote_ui.dtsi"
 #include "universal_remote_layers.h"
+#include <input/processors.dtsi>
+#include <behaviors/input_gestures_accel.dtsi>
 
 / {
     chosen {
@@ -71,7 +73,7 @@
         device = <&touchpad>;
         // The pad is about 154 px wide, so it moves the pointer 3 host pixels
         // per panel pixel.
-        input-processors = <&zip_xy_scaler 3 1>;
+        input-processors = <&pointer_accel &zip_xy_scaler 3 1>;
     };
 
     // Tilt on the Touchpad screen: turning the remote moves the pointer
@@ -87,13 +89,14 @@
         icon-off = UI_ICON_TOGGLE_SWITCH_OFF_OUTLINE;
         // Yaw is about the board's normal; the GY-521 lies flat on the back.
         x-axis = "z";
-        y-axis = "y";
+        y-axis = "x";
         pixels-per-degree = <25>;
     };
 
     touchpad_motion_listener {
         compatible = "zmk,input-listener";
         device = <&touchpad_motion>;
+        input-processors = <&pointer_accel>;
     };
 
     backlight: pwmleds {
@@ -138,6 +141,16 @@
         compatible = "zmk,ir-rx";
         in-gpios = <&gpio1 0 GPIO_ACTIVE_HIGH>;
     };
+};
+
+&pointer_accel {
+    input-type = <INPUT_EV_REL>;    // For relative input devices
+    track-remainders;               // Accumulate fractional movements
+    min-factor = <800>;             // 0.8x at very slow speeds
+    max-factor = <3000>;            // 3.0x at fast speeds
+    speed-threshold = <1200>;       // 1200 counts/sec for 1x
+    speed-max = <6000>;             // 6000 counts/sec for max accel
+    acceleration-exponent = <2>;    // Quadratic acceleration curve
 };
 
 // Diodes point from rows to columns, so the rows drive and the columns read.

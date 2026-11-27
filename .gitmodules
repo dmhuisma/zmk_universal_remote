@@ -7,3 +7,6 @@
 [submodule "firmware/zmk-ir"]
 	path = firmware/zmk-ir
 	url = https://github.com/tadakado/zmk-ir.git
+[submodule "firmware/zmk-pointing-acceleration"]
+	path = firmware/zmk-pointing-acceleration
+	url = https://github.com/oleksandrmaslov/zmk-pointing-acceleration.git

@@ -18,7 +18,7 @@
         "--",
         "-DSHIELD=universal_remote",
         "-DZMK_CONFIG=${workspaceFolder}/config",
-        "-DZMK_EXTRA_MODULES=${workspaceFolder};${workspaceFolder}/zephyr-dt-lvgl;${workspaceFolder}/zmk-ir"
+        "-DZMK_EXTRA_MODULES=${workspaceFolder};${workspaceFolder}/zephyr-dt-lvgl;${workspaceFolder}/zmk-ir;${workspaceFolder}/zmk-pointing-acceleration"
       ],
       "group": { "kind": "build" },
       "problemMatcher": ["$gcc"]
@@ -49,7 +49,7 @@
         "--",
         "-DSHIELD=universal_remote",
         "-DZMK_CONFIG=${workspaceFolder}/config",
-        "-DZMK_EXTRA_MODULES=${workspaceFolder};${workspaceFolder}/zephyr-dt-lvgl;${workspaceFolder}/zmk-ir"
+        "-DZMK_EXTRA_MODULES=${workspaceFolder};${workspaceFolder}/zephyr-dt-lvgl;${workspaceFolder}/zmk-ir;${workspaceFolder}/zmk-pointing-acceleration"
       ],
       "group": { "kind": "build" },
       "problemMatcher": ["$gcc"]
@@ -80,7 +80,7 @@
         "--",
         "-DSHIELD=universal_remote_dongle",
         "-DZMK_CONFIG=${workspaceFolder}/config",
-        "-DZMK_EXTRA_MODULES=${workspaceFolder};${workspaceFolder}/zephyr-dt-lvgl;${workspaceFolder}/zmk-ir"
+        "-DZMK_EXTRA_MODULES=${workspaceFolder};${workspaceFolder}/zephyr-dt-lvgl;${workspaceFolder}/zmk-ir;${workspaceFolder}/zmk-pointing-acceleration"
       ],
       "group": "build",
       "problemMatcher": ["$gcc"]
@@ -96,7 +96,7 @@
         "--",
         "-DSHIELD=settings_reset",
         "-DZMK_CONFIG=${workspaceFolder}/config",
-        "-DZMK_EXTRA_MODULES=${workspaceFolder};${workspaceFolder}/zephyr-dt-lvgl;${workspaceFolder}/zmk-ir"
+        "-DZMK_EXTRA_MODULES=${workspaceFolder};${workspaceFolder}/zephyr-dt-lvgl;${workspaceFolder}/zmk-ir;${workspaceFolder}/zmk-pointing-acceleration"
       ],
       "group": "build",
       "problemMatcher": ["$gcc"]

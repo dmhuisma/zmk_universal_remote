@@ -82,7 +82,11 @@ bool ir_rx_is_enabled(void)
 // Undoes the driver's setup, which runs at the POST_KERNEL level.
 static int ir_rx_enable_init(void)
 {
+#if IS_ENABLED(CONFIG_IR_RX_LOG_LEVEL_DBG)
+    (void)ir_rx_set_enabled(true);
+#else
     (void)ir_rx_set_enabled(false);
+#endif
 
     return 0;
 }

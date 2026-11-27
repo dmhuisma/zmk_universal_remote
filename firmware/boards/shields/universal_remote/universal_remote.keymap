@@ -7,10 +7,10 @@
 #include "universal_remote_layers.h"
 
 // placeholders
-#define IR_TV_CUSTOMER 0x00FF
-#define IR_TV_POWER 0x00FF
-#define IR_TV_VOL_UP 0x01FE
-#define IR_TV_VOL_DN 0x02FD
+#define IR_TV_CUSTOMER 0x02fd
+#define IR_TV_POWER 0x48b7
+#define IR_TV_VOL_UP 0x58a7
+#define IR_TV_VOL_DN 0x7887
 
 #define IR_KEY(key, label, customer, data)                                     \
     ZMK_MACRO(key,                                                             \

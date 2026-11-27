@@ -4,6 +4,8 @@ A simple remote for a living-room HTPC. Off-the-shelf remotes tend to feel cheap
 
 This repository contains the PCB, the 3D-printable case and the [ZMK](https://zmk.dev/) firmware.
 
+> **Note:** This remote needs a second revision to solve connectivity issues. The antenna is placed under where you grip with your hand, which blocks the signal.
+
 ![Universal remote case render](docs/images/remote.png)
 
 ## Features
